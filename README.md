@@ -1,45 +1,46 @@
 # TailorCV
 
-An AI-powered app that tailors a resume to a specific job description. Paste
-your resume and a job posting, and get back a match score, matched and
-missing keywords, actionable suggestions, and a rewritten, ATS-friendly
-version of your resume — without inventing anything that isn't in the
-original.
+**Tailor your resume for every job.**
 
-## Features
+TailorCV is an AI-powered resume tailoring application that analyzes your resume against a specific job description and helps you create a more relevant, ATS-friendly version.
 
-- Paste a resume and job description, click one button, get a full analysis.
-- **Match score (0–100)** with a "Strong / Moderate / Needs Work" verdict.
-- **Matched keywords** — skills/tools the resume already supports.
-- **Missing keywords** — important terms from the job description the resume
-  doesn't cover.
-- **Suggestions** — concrete, realistic ways to improve the resume.
-- **Tailored resume** — a rewritten version emphasizing relevant experience,
-  with one-click copy to clipboard.
-- Clear loading and error states; the AI is instructed to never fabricate
-  jobs, employers, degrees, skills, or metrics.
+Paste your resume, add the job description, and get an AI-powered analysis with a **match score, keywords, improvement suggestions, and a tailored resume** — without inventing experience or qualifications.
 
-This is an intentionally small MVP: no login, no database, no file uploads,
-no payments, no saved history. Everything happens in a single request/response
-cycle.
+## ✨ Features
 
-## Tech stack
+* 🤖 AI-powered resume and job description analysis
+* 📊 Resume-to-job match score
+* 🔑 Matched keywords
+* ⚠️ Missing keywords
+* 💡 Actionable improvement suggestions
+* 📄 ATS-friendly tailored resume
+* 📋 One-click copy for the tailored resume
+* ⚡ Clear loading and error states
+* 📱 Responsive interface
+* 🌙 Light and dark themes
+* 🧭 Client-side routing with React Router
 
-**Frontend**
-- React 18 + Vite
-- Tailwind CSS
-- Plain JavaScript (JSX)
+## 🛠️ Tech Stack
 
-**Backend**
-- Python 3.10+
-- FastAPI
-- Pydantic v2 (request/response validation)
-- OpenAI API (`gpt-4o-mini` by default, via structured JSON output)
+### Frontend
 
-## Project structure
+* React
+* Vite
+* Tailwind CSS
+* React Router
+* JavaScript / JSX
 
-```
-resume-tailor/
+### Backend
+
+* Python
+* FastAPI
+* Pydantic
+* Gemini API
+
+## 📁 Project Structure
+
+```text
+tailor-cv/
 ├── frontend/
 │   ├── src/
 │   │   ├── components/
@@ -48,188 +49,219 @@ resume-tailor/
 │   │   │   ├── EmptyState.jsx
 │   │   │   ├── LoadingState.jsx
 │   │   │   ├── ErrorState.jsx
-│   │   │   ├── ResultsPanel.jsx
-│   │   │   ├── MatchScoreTape.jsx
-│   │   │   ├── KeywordBadges.jsx
-│   │   │   ├── Suggestions.jsx
-│   │   │   └── TailoredResume.jsx
+│   │   │   └── ResultsPanel.jsx
+│   │   │
+│   │   ├── pages/
+│   │   │   ├── Hero.jsx
+│   │   │   ├── LoginPage.jsx
+│   │   │   ├── TailorPage.jsx
+│   │   │   ├── TermsPage.jsx
+│   │   │   └── PrivacyPolicyPage.jsx
+│   │   │
 │   │   ├── App.jsx
-│   │   ├── main.jsx
-│   │   └── index.css
-│   ├── index.html
+│   │   └── main.jsx
+│   │
 │   ├── package.json
-│   ├── tailwind.config.js
-│   ├── postcss.config.js
-│   ├── vite.config.js
-│   └── .env.example
+│   └── vite.config.js
+│
 ├── backend/
 │   ├── main.py
 │   ├── models.py
 │   ├── services/
 │   │   └── ai_service.py
-│   ├── requirements.txt
-│   └── .env.example
+│   └── requirements.txt
+│
 └── README.md
 ```
 
-## Local setup
+## 🚀 Getting Started
 
 ### Prerequisites
 
-- Node.js 18+ and npm
-- Python 3.10+
-- An OpenAI API key with access to a chat completions model
+Make sure you have the following installed:
 
-### 1. Clone / open the project
+* Node.js 18+
+* npm
+* Python 3.10+
+* A Gemini API key
 
-```bash
-cd resume-tailor
-```
-
-### 2. Backend setup
+### 1. Clone the repository
 
 ```bash
-cd backend
-cp .env.example .env
-# Edit .env and set OPENAI_API_KEY=sk-...
-pip install -r requirements.txt
-uvicorn main:app --reload
+git clone <your-repository-url>
+cd tailor-cv
 ```
 
-The API will start on `http://localhost:8000`. Visit
-`http://localhost:8000/docs` for interactive API docs.
-
-### 3. Frontend setup
-
-In a separate terminal:
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-The app will start on `http://localhost:5173`.
-
-### 4. Use it
-
-Open `http://localhost:5173`, paste a resume and a job description, and
-click **Tailor My Resume**.
-
-## Environment variables
-
-### Backend (`backend/.env`)
-
-| Variable          | Required | Default                 | Description                                   |
-|--------------------|----------|--------------------------|------------------------------------------------|
-| `OPENAI_API_KEY`   | Yes      | —                        | Your OpenAI API key. Never exposed to the frontend. |
-| `OPENAI_MODEL`     | No       | `gpt-4o-mini`            | Chat completion model used for tailoring.      |
-| `FRONTEND_ORIGIN`  | No       | `http://localhost:5173` | Comma-separated list of allowed CORS origins.  |
-
-### Frontend (`frontend/.env`, optional)
-
-| Variable       | Required | Default                 | Description                          |
-|-----------------|----------|--------------------------|----------------------------------------|
-| `VITE_API_URL`  | No       | `http://localhost:8000` | Base URL of the FastAPI backend.       |
-
-The OpenAI API key is **only** ever read on the backend (`backend/.env`). It
-is never sent to the browser, and the frontend only ever talks to your own
-FastAPI server.
-
-## Running frontend
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-## Running backend
+### 2. Set up the backend
 
 ```bash
 cd backend
 pip install -r requirements.txt
+```
+
+Create a `.env` file inside the `backend` directory:
+
+```env
+GEMINI_API_KEY=your_api_key
+GEMINI_MODEL=your_model
+FRONTEND_ORIGIN=http://localhost:5173
+```
+
+Start the backend:
+
+```bash
 uvicorn main:app --reload
 ```
 
-## API documentation
+The API will be available at:
+
+```text
+http://localhost:8000
+```
+
+FastAPI documentation:
+
+```text
+http://localhost:8000/docs
+```
+
+### 3. Set up the frontend
+
+Open another terminal:
+
+```bash
+cd frontend
+npm install
+```
+
+Create a `.env` file inside the `frontend` directory if needed:
+
+```env
+VITE_API_URL=http://localhost:8000
+```
+
+Start the frontend:
+
+```bash
+npm run dev
+```
+
+The application will be available at:
+
+```text
+http://localhost:5173
+```
+
+## 🔐 Environment Variables
+
+### Backend
+
+| Variable          | Required | Description                           |
+| ----------------- | -------- | ------------------------------------- |
+| `GEMINI_API_KEY`  | Yes      | Gemini API key used by the backend    |
+| `GEMINI_MODEL`    | Yes      | Gemini model used for resume analysis |
+| `FRONTEND_ORIGIN` | No       | Allowed frontend origin for CORS      |
+
+### Frontend
+
+| Variable       | Required | Description                     |
+| -------------- | -------- | ------------------------------- |
+| `VITE_API_URL` | No       | Base URL of the FastAPI backend |
+
+> **Never commit ****`.env`**** files or API keys to GitHub.**
+
+## 🔌 API
 
 ### `POST /api/tailor`
 
-Analyzes a resume against a job description and returns a tailored result.
+Analyzes a resume against a job description.
 
-**Request body**
+#### Request
 
 ```json
 {
-  "resume": "string",
-  "job_description": "string"
+  "resume": "Your resume...",
+  "job_description": "Job description..."
 }
 ```
 
-Both fields are required and cannot be blank; the API returns `422` with a
-validation error if either is missing or empty.
-
-**Success response — `200 OK`**
+#### Response
 
 ```json
 {
   "match_score": 82,
   "summary": "Strong match with several relevant skills.",
-  "matched_keywords": ["React", "Python", "REST APIs"],
-  "missing_keywords": ["Docker", "AWS"],
+  "matched_keywords": [
+    "React",
+    "Python",
+    "REST APIs"
+  ],
+  "missing_keywords": [
+    "Docker",
+    "AWS"
+  ],
   "suggestions": [
     "Emphasize your experience building REST APIs.",
-    "Add measurable results to your backend projects."
+    "Highlight relevant backend projects."
   ],
   "tailored_resume": "..."
 }
 ```
 
-**Error responses**
-
-| Status | When                                                      |
-|--------|-------------------------------------------------------------|
-| `422`  | `resume` or `job_description` missing/blank                |
-| `502`  | OpenAI API call failed, or returned invalid/incomplete data |
-
-Error bodies look like:
-
-```json
-{ "detail": "Something went wrong while analyzing your resume. Please try again." }
-```
-
 ### `GET /api/health`
 
-Simple liveness check, returns `{ "status": "ok" }`.
+Returns the current health status of the backend.
 
-## Example request
+#### Response
 
-```bash
-curl -X POST http://localhost:8000/api/tailor \
-  -H "Content-Type: application/json" \
-  -d '{
-        "resume": "Experienced Python developer with 5 years building REST APIs using FastAPI and Django.",
-        "job_description": "Looking for a backend engineer with Python, Docker, and AWS experience."
-      }'
+```json
+{
+  "status": "ok"
+}
 ```
 
-## Security notes
+## 🔒 Security
 
-- The OpenAI API key lives only in `backend/.env`, which is git-ignored.
-- The frontend never holds or sends the API key; it only calls your FastAPI
-  backend.
-- CORS is restricted to the configured `FRONTEND_ORIGIN` (defaults to the
-  Vite dev server).
+* Gemini API credentials are kept on the backend.
+* API keys are never exposed to the frontend.
+* `.env` files should not be committed to GitHub.
+* CORS is restricted to the configured frontend origin.
+* The AI is instructed not to fabricate employers, degrees, skills, experience, or achievements.
+* Resume content is sent to the backend only when the user submits a tailoring request.
 
-## Future improvements
+## 📌 Current Status
 
-Out of scope for this MVP, but natural next steps:
+TailorCV is currently an **MVP**.
 
-- Resume file upload (PDF/DOCX) instead of paste-only.
-- Save/compare multiple tailoring attempts (would require a database).
-- User accounts and authentication.
-- Export the tailored resume as a formatted PDF/DOCX.
-- Streaming the AI response for faster perceived performance.
-- Multiple resume "versions" tailored for different roles.
-- Rate limiting / usage quotas per user.
+The current version focuses on the core resume-tailoring workflow:
+
+```text
+Resume → Job Description → AI Analysis → Tailored Resume
+```
+
+Authentication and persistent user data are not currently implemented.
+
+## 🗺️ Roadmap
+
+* [ ] Google authentication
+* [ ] User accounts
+* [ ] Saved resume versions
+* [ ] Resume history
+* [ ] PDF and DOCX resume uploads
+* [ ] PDF and DOCX export
+* [ ] Usage limits and rate limiting
+* [ ] Multiple AI model options
+* [ ] Improved resume formatting
+* [ ] Production analytics and monitoring
+
+## 🤝 Contributing
+
+Contributions, suggestions, and improvements are welcome.
+
+If you find a bug or have an idea for improving TailorCV, feel free to open an issue or submit a pull request.
+
+## 📄 License
+
+This project is currently **not licensed for redistribution**.
+
+All rights reserved.

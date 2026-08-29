@@ -1,4 +1,4 @@
-"""ResumeTailor backend - FastAPI application."""
+"""TailorCV backend - FastAPI application."""
 
 import logging
 import os
@@ -18,7 +18,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("resume_tailor")
 
 app = FastAPI(
-    title="ResumeTailor API",
+    title="TailorCV API",
     description="AI-powered Job Description -> Resume Tailor backend.",
     version="1.0.0",
 )

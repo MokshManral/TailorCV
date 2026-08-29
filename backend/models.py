@@ -1,4 +1,4 @@
-"""Pydantic models for the ResumeTailor API."""
+"""Pydantic models for the TailorCV API."""
 
 from pydantic import BaseModel, Field, field_validator
 
