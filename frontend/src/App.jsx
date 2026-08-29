@@ -8,16 +8,23 @@ import TermsPage from "./pages/TermsPage.jsx";
 import PrivacyPolicyPage from "./pages/PrivacyPolicyPage.jsx";
 
 export default function App() {
-  const [dark, setDark] = useState(false);
+  const [dark, setDark] = useState(() => {
+    return localStorage.getItem("tailorcv-theme") === "dark";
+  });
 
   useEffect(() => {
+    localStorage.setItem("tailorcv-theme", dark ? "dark" : "light");
+
     document.documentElement.classList.toggle("dark", dark);
   }, [dark]);
 
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Hero dark={dark} setDark={setDark} />} />
+        <Route
+          path="/"
+          element={<Hero dark={dark} setDark={setDark} />}
+        />
 
         <Route
           path="/login"

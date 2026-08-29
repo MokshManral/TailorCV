@@ -1,17 +1,21 @@
 import { useState } from "react";
-import Header from "../components/Header.jsx";
+import { useNavigate } from "react-router-dom";
+
 import InputPanel from "../components/InputPanel.jsx";
 import EmptyState from "../components/EmptyState.jsx";
-import LoadingState from "../components/LoadingState.jsx";
+import Header from "../components/Header.jsx";
 import ErrorState from "../components/ErrorState.jsx";
 import ResultsPanel from "../components/ResultsPanel.jsx";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 const GENERIC_ERROR =
   "Something went wrong while analyzing your resume. Please try again.";
 
-export default function TailorPage({ dark }) {
+export default function TailorPage({ dark, setDark }) {
+  const navigate = useNavigate();
+
   const [resume, setResume] = useState("");
   const [jobDescription, setJobDescription] = useState("");
   const [status, setStatus] = useState("idle");
@@ -40,6 +44,7 @@ export default function TailorPage({ dark }) {
 
     setStatus("loading");
     setErrorMessage("");
+    setResult(null);
 
     try {
       const response = await fetch(`${API_BASE_URL}/api/tailor`, {
@@ -63,7 +68,7 @@ export default function TailorPage({ dark }) {
             detail = errorBody.detail;
           }
         } catch {
-          // Fall back to generic error
+          // Fall back to generic error.
         }
 
         throw new Error(detail);
@@ -73,13 +78,15 @@ export default function TailorPage({ dark }) {
 
       setResult(data);
       setStatus("success");
-    } catch (err) {
-      setErrorMessage(err.message || GENERIC_ERROR);
+    } catch (error) {
+      setErrorMessage(error.message || GENERIC_ERROR);
       setStatus("error");
     }
   }
 
   function handleStartOver() {
+    setResume("");
+    setJobDescription("");
     setResult(null);
     setErrorMessage("");
     setFieldErrors({});
@@ -87,8 +94,8 @@ export default function TailorPage({ dark }) {
   }
 
   function handleRetry() {
-    setStatus("idle");
     setErrorMessage("");
+    setStatus("idle");
   }
 
   return (
@@ -97,9 +104,39 @@ export default function TailorPage({ dark }) {
         dark ? "bg-[#080808] text-white" : "bg-[#fafafa] text-[#111]"
       }`}
     >
-      <Header dark={dark} />
+      {/* Header */}
+      <Header dark={dark} setDark={setDark} />
 
-      <main className="mx-auto max-w-6xl px-6 py-10 sm:px-8">
+      {/* Page */}
+      <section className="mx-auto max-w-6xl px-6 pb-20 pt-12 sm:px-8 sm:pt-16">
+        {/* Heading */}
+        <div className="mb-10">
+          <div
+            className={`mb-5 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium ${
+              dark
+                ? "border-neutral-800 bg-neutral-900 text-neutral-400"
+                : "border-neutral-200 bg-white text-neutral-500"
+            }`}
+          >
+            <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
+            AI-powered resume tailoring
+          </div>
+
+          <h1 className="text-3xl font-semibold tracking-[-0.04em] sm:text-4xl">
+            Tailor your resume.
+          </h1>
+
+          <p
+            className={`mt-3 max-w-2xl text-sm leading-6 sm:text-base ${
+              dark ? "text-neutral-400" : "text-neutral-500"
+            }`}
+          >
+            Match your resume to a job description and highlight the
+            experience that matters most.
+          </p>
+        </div>
+
+        {/* Input + Results */}
         <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
           <InputPanel
             resume={resume}
@@ -115,7 +152,12 @@ export default function TailorPage({ dark }) {
           <div>
             {status === "idle" && <EmptyState dark={dark} />}
 
-            {status === "loading" && <LoadingState dark={dark} />}
+            {status === "loading" && (
+              <ResultsPanel
+                loading={true}
+                dark={dark}
+              />
+            )}
 
             {status === "error" && (
               <ErrorState
@@ -134,7 +176,7 @@ export default function TailorPage({ dark }) {
             )}
           </div>
         </div>
-      </main>
+      </section>
     </main>
   );
 }

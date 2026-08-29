@@ -1,23 +1,86 @@
-export default function Header() {
+import React from "react";
+import { useNavigate } from "react-router-dom";
+
+export default function Header({ dark, setDark }) {
+  const navigate = useNavigate();
+
   return (
-    <header className="border-b border-seam bg-canvas">
-      <div className="mx-auto flex max-w-6xl flex-col gap-1 px-6 py-8 sm:px-8">
-        <div className="flex items-center gap-3">
-          <span
-            aria-hidden="true"
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-ink text-canvas font-display text-lg"
-          >
-            T
-          </span>
-          <h1 className="font-display text-2xl font-medium tracking-tight text-ink sm:text-3xl">
-            TailorCV
-          </h1>
+    <header
+      className={`mx-auto flex h-20 max-w-6xl items-center justify-between px-6 ${
+        dark ? "text-white" : "text-neutral-950"
+      }`}
+    >
+      {/* Logo */}
+      <button
+        onClick={() => navigate("/")}
+        className="group flex items-center gap-2.5"
+        aria-label="Back to TailorCV"
+      >
+        <div
+          className={`flex h-8 w-8 items-center justify-center rounded-lg text-xs font-semibold transition-transform group-hover:scale-95 ${
+            dark ? "bg-white text-black" : "bg-black text-white"
+          }`}
+        >
+          T
         </div>
-        <p className="ml-12 font-body text-sm text-ink-soft sm:text-base">
-          Optimize your resume for any job description.
-        </p>
-      </div>
-      <div className="stitch-line" />
+
+        <span className="text-[15px] font-semibold tracking-tight">
+          TailorCV
+        </span>
+      </button>
+
+      {/* Theme toggle */}
+      <button
+        type="button"
+        onClick={() => setDark((value) => !value)}
+        aria-label="Toggle theme"
+        className={`flex h-9 w-9 items-center justify-center rounded-lg border transition ${
+          dark
+            ? "border-neutral-800 bg-neutral-900 hover:bg-neutral-800"
+            : "border-neutral-200 bg-white hover:bg-neutral-50"
+        }`}
+      >
+        {dark ? (
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            className="text-white"
+          >
+            <circle
+              cx="12"
+              cy="12"
+              r="4"
+              stroke="currentColor"
+              strokeWidth="1.7"
+            />
+
+            <path
+              d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"
+              stroke="currentColor"
+              strokeWidth="1.7"
+              strokeLinecap="round"
+            />
+          </svg>
+        ) : (
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            className="text-neutral-700"
+          >
+            <path
+              d="M20.5 15.5A8.5 8.5 0 018.5 3.5a8.5 8.5 0 1012 12z"
+              stroke="currentColor"
+              strokeWidth="1.7"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        )}
+      </button>
     </header>
   );
 }
