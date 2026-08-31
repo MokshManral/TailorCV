@@ -41,6 +41,14 @@ oauth.register(
 GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI")
 FRONTEND_URL = os.getenv("FRONTEND_URL")
 
+IS_PRODUCTION = os.getenv("ENVIRONMENT") == "production"
+
+# In production the frontend and backend live on different domains, so
+# the auth cookie is cross-site. Browsers only send such a cookie when it
+# is SameSite=None, and they only accept SameSite=None when it is Secure.
+COOKIE_SAMESITE = "none" if IS_PRODUCTION else "lax"
+COOKIE_SECURE = IS_PRODUCTION
+
 JWT_SECRET = os.getenv("JWT_SECRET")
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 JWT_EXPIRE_MINUTES = int(
@@ -146,9 +154,10 @@ async def google_callback(
         key="access_token",
         value=access_token,
         httponly=True,
-        secure=os.getenv("ENVIRONMENT") == "production",
-        samesite="lax",
+        secure=COOKIE_SECURE,
+        samesite=COOKIE_SAMESITE,
         max_age=60 * JWT_EXPIRE_MINUTES,
+        path="/",
     )
 
     return response
@@ -247,8 +256,9 @@ async def logout():
     response.delete_cookie(
         key="access_token",
         httponly=True,
-        secure=os.getenv("ENVIRONMENT") == "production",
-        samesite="lax",
+        secure=COOKIE_SECURE,
+        samesite=COOKIE_SAMESITE,
+        path="/",
     )
 
     return response
