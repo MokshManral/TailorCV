@@ -48,7 +48,7 @@ app.include_router(auth_router)
 FRONTEND_ORIGINS = [
     origin.strip()
     for origin in os.getenv(
-        "FRONTEND_ORIGIN",
+        "FRONTEND_URL",
         "http://localhost:5173",
     ).split(",")
     if origin.strip()
