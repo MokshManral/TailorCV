@@ -13,7 +13,7 @@ const API_BASE_URL =
 const GENERIC_ERROR =
   "Something went wrong while analyzing your resume. Please try again.";
 
-export default function TailorPage({ dark, setDark }) {
+export default function TailorPage({ dark, setDark, user, setUser }) {
   const navigate = useNavigate();
 
   const [resume, setResume] = useState("");
@@ -49,6 +49,7 @@ export default function TailorPage({ dark, setDark }) {
     try {
       const response = await fetch(`${API_BASE_URL}/api/tailor`, {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
         },
@@ -105,7 +106,7 @@ export default function TailorPage({ dark, setDark }) {
       }`}
     >
       {/* Header */}
-      <Header dark={dark} setDark={setDark} />
+      <Header dark={dark} setDark={setDark} user={user} setUser={setUser} />
 
       {/* Page */}
       <section className="mx-auto max-w-6xl px-6 pb-20 pt-12 sm:px-8 sm:pt-16">

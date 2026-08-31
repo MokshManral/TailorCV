@@ -2,8 +2,15 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "../components/Header";
 
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL || "http://localhost:8000";
+
 export default function LoginPage({ onBack, onLogin, dark, setDark }) {
   const navigate = useNavigate();
+
+  const handleGoogleLogin = () => {
+    window.location.href = `${API_URL}/auth/google`;
+  };
 
   return (
     <main
@@ -36,7 +43,6 @@ export default function LoginPage({ onBack, onLogin, dark, setDark }) {
                 strokeLinejoin="round"
               />
             </svg>
-
             Back
           </button>
 
@@ -59,8 +65,8 @@ export default function LoginPage({ onBack, onLogin, dark, setDark }) {
                 dark ? "text-neutral-400" : "text-neutral-500"
               }`}
             >
-              Sign in to continue and create a resume tailored to the job
-              you're applying for.
+              Sign in to continue and create a resume tailored to the job you're
+              applying for.
             </p>
           </div>
 
@@ -74,7 +80,7 @@ export default function LoginPage({ onBack, onLogin, dark, setDark }) {
           >
             {/* Google */}
             <button
-              onClick={() => onLogin?.("google")}
+              onClick={handleGoogleLogin}
               className={`flex w-full items-center justify-center gap-3 rounded-lg border px-4 py-3 text-sm font-medium transition ${
                 dark
                   ? "border-neutral-800 bg-neutral-900 text-white hover:bg-neutral-800"
@@ -149,7 +155,6 @@ export default function LoginPage({ onBack, onLogin, dark, setDark }) {
                 }`}
               >
                 Continue
-
                 <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
                   <path
                     d="M3 8h10M9 4l4 4-4 4"
