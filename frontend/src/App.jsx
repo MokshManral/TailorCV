@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import Hero from "./pages/Hero.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
@@ -18,7 +18,6 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [loadingUser, setLoadingUser] = useState(true);
 
-  // Theme
   useEffect(() => {
     localStorage.setItem(
       "tailorcv-theme",
@@ -93,12 +92,20 @@ export default function App() {
         <Route
           path="/tailor"
           element={
-            <TailorPage
-              dark={dark}
-              setDark={setDark}
-              user={user}
-              setUser={setUser}
-            />
+            loadingUser ? (
+              <div className="min-h-screen flex items-center justify-center">
+                Loading...
+              </div>
+            ) : user ? (
+              <TailorPage
+                dark={dark}
+                setDark={setDark}
+                user={user}
+                setUser={setUser}
+              />
+            ) : (
+              <Navigate to="/login" replace />
+            )
           }
         />
 
