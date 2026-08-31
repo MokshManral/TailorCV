@@ -7,9 +7,12 @@ import os
 from google import genai
 from google.genai import types
 
+
 logger = logging.getLogger("resume_tailor.ai_service")
 
-MODEL_NAME = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
+
+MODEL_NAME = os.getenv("GEMINI_MODEL")
+
 
 SYSTEM_PROMPT = """You are an expert technical recruiter and resume writer.
 
@@ -74,13 +77,21 @@ def _get_client():
     if not api_key:
         raise AIServiceError(
             "GEMINI_API_KEY is not configured on the server. "
-            "Set it in backend/.env."
+            "Set it in the server environment variables."
+        )
+
+    if not MODEL_NAME:
+        raise AIServiceError(
+            "GEMINI_MODEL is not configured on the server."
         )
 
     return genai.Client(api_key=api_key)
 
 
-def _build_user_prompt(resume: str, job_description: str) -> str:
+def _build_user_prompt(
+    resume: str,
+    job_description: str,
+) -> str:
     return (
         "RESUME:\n"
         "-----\n"
@@ -94,7 +105,10 @@ def _build_user_prompt(resume: str, job_description: str) -> str:
     )
 
 
-def tailor_resume(resume: str, job_description: str) -> dict:
+def tailor_resume(
+    resume: str,
+    job_description: str,
+) -> dict:
     """Call Gemini and return the parsed structured result."""
 
     client = _get_client()
@@ -102,7 +116,10 @@ def tailor_resume(resume: str, job_description: str) -> dict:
     try:
         response = client.models.generate_content(
             model=MODEL_NAME,
-            contents=_build_user_prompt(resume, job_description),
+            contents=_build_user_prompt(
+                resume,
+                job_description,
+            ),
             config=types.GenerateContentConfig(
                 system_instruction=SYSTEM_PROMPT,
                 temperature=0.3,
@@ -111,7 +128,11 @@ def tailor_resume(resume: str, job_description: str) -> dict:
         )
 
     except Exception as exc:
-        logger.exception("Gemini API error: %s", exc)
+        logger.exception(
+            "Gemini API error: %s",
+            exc,
+        )
+
         raise AIServiceError(
             "The AI service returned an error. Please try again."
         ) from exc
@@ -119,15 +140,19 @@ def tailor_resume(resume: str, job_description: str) -> dict:
     raw_content = response.text
 
     if not raw_content:
-        raise AIServiceError("The AI service returned an empty response.")
+        raise AIServiceError(
+            "The AI service returned an empty response."
+        )
 
     try:
         data = json.loads(raw_content)
+
     except json.JSONDecodeError as exc:
         logger.error(
             "Failed to parse Gemini JSON response: %s",
             raw_content[:500],
         )
+
         raise AIServiceError(
             "The AI service returned an invalid response."
         ) from exc
@@ -144,7 +169,11 @@ def tailor_resume(resume: str, job_description: str) -> dict:
     missing_keys = required_keys - data.keys()
 
     if missing_keys:
-        logger.error("AI response missing keys: %s", missing_keys)
+        logger.error(
+            "AI response missing keys: %s",
+            missing_keys,
+        )
+
         raise AIServiceError(
             "The AI service returned incomplete data."
         )
