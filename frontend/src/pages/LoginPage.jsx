@@ -9,7 +9,7 @@ export default function LoginPage({ onBack, onLogin, dark, setDark }) {
   const navigate = useNavigate();
 
   const handleGoogleLogin = () => {
-    window.location.href = `${API_URL}/auth/google`;
+    window.location.href = `${API_BASE_URL}/auth/google`;
   };
 
   return (

@@ -36,7 +36,7 @@ export default function App() {
     const checkUser = async () => {
       try {
         const response = await fetch(
-          `${API_URL}/auth/me`,
+          `${API_BASE_URL}/auth/me`,
           {
             method: "GET",
             credentials: "include",
