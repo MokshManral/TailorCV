@@ -8,7 +8,7 @@ import TermsPage from "./pages/TermsPage.jsx";
 import PrivacyPolicyPage from "./pages/PrivacyPolicyPage.jsx";
 
 const API_BASE_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:8000";
+  import.meta.env.API_URL || "http://localhost:8000";
 
 export default function App() {
   const [dark, setDark] = useState(() => {
