@@ -85,6 +85,7 @@ async def google_login(request: Request):
     return await oauth.google.authorize_redirect(
         request,
         GOOGLE_REDIRECT_URI,
+        prompt="select_account"
     )
 
 
