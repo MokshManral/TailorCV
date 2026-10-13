@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Header from "../components/Header";
 
 const API_BASE_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:8000";
+  import.meta.env.API_URL;
 
 export default function LoginPage({ onBack, onLogin, dark, setDark }) {
   const navigate = useNavigate();
