@@ -191,7 +191,7 @@ export default function Hero({ dark, setDark }) {
       {/* HOW IT WORKS */}
       <section
         id="how-it-works"
-        className={`border-t py-28 sm:py-36 ${
+        className={`py-28 sm:py-36 ${
           dark
             ? "border-neutral-800 bg-[#080808]"
             : "border-neutral-200 bg-[#fafafa]"
