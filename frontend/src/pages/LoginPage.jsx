@@ -22,13 +22,20 @@ export default function LoginPage({ onBack, onLogin, dark, setDark }) {
       <Header dark={dark} setDark={setDark} />
 
       {/* Main */}
-      <section className="flex min-h-[calc(100vh-80px)] items-center justify-center px-6 py-12">
-        <div className="w-full max-w-[420px]">
+      <section className="relative isolate flex min-h-[calc(100vh-80px)] items-center justify-center overflow-hidden px-6 py-12">
+        <div
+          aria-hidden="true"
+          className={`pointer-events-none absolute left-1/2 top-1/2 -z-10 h-[520px] w-[520px] -translate-x-1/2 -translate-y-1/2 rounded-full blur-3xl ${
+            dark ? "bg-white/[0.035]" : "bg-neutral-200/70"
+          }`}
+        />
+
+        <div className="relative w-full max-w-[440px] -translate-y-8 sm:-translate-y-12">
 
           {/* Back */}
           <button
             onClick={() => navigate("/")}
-            className={`mb-8 flex items-center gap-2 text-sm transition ${
+            className={`mb-8 flex items-center gap-2 rounded-lg py-1 text-sm transition ${
               dark
                 ? "text-neutral-500 hover:text-white"
                 : "text-neutral-500 hover:text-neutral-950"
@@ -48,15 +55,18 @@ export default function LoginPage({ onBack, onLogin, dark, setDark }) {
 
           {/* Heading */}
           <div className="mb-8">
-            <p
-              className={`mb-3 text-xs font-medium uppercase tracking-[0.16em] ${
-                dark ? "text-neutral-500" : "text-neutral-400"
+            <div
+              className={`mb-5 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] font-medium uppercase tracking-[0.14em] ${
+                dark
+                  ? "border-neutral-800 bg-neutral-900/70 text-neutral-400"
+                  : "border-neutral-200 bg-white/80 text-neutral-500"
               }`}
             >
-              TailorCV
-            </p>
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+              Secure sign-in
+            </div>
 
-            <h1 className="text-3xl font-semibold tracking-[-0.04em] sm:text-4xl">
+            <h1 className="text-4xl font-semibold tracking-[-0.055em] sm:text-[2.75rem]">
               Tailor your resume
             </h1>
 
@@ -72,104 +82,31 @@ export default function LoginPage({ onBack, onLogin, dark, setDark }) {
 
           {/* Card */}
           <div
-            className={`rounded-2xl border p-6 shadow-[0_12px_40px_rgba(0,0,0,0.05)] sm:p-7 ${
+            className={`rounded-3xl border p-6 shadow-[0_24px_70px_rgba(0,0,0,0.08)] sm:p-8 ${
               dark
-                ? "border-neutral-800 bg-[#0e0e0e]"
-                : "border-neutral-200 bg-white"
+                ? "border-neutral-800/90 bg-[#101010]/95 shadow-black/30"
+                : "border-neutral-200/90 bg-white/90 shadow-neutral-300/40 backdrop-blur-xl"
             }`}
           >
             {/* Google */}
             <button
               onClick={handleGoogleLogin}
-              className={`flex w-full items-center justify-center gap-3 rounded-lg border px-4 py-3 text-sm font-medium transition ${
+              className={`group flex h-12 w-full items-center justify-center gap-3 rounded-xl border px-4 text-sm font-medium transition duration-200 hover:-translate-y-0.5 focus-visible:outline-offset-4 ${
                 dark
-                  ? "border-neutral-800 bg-neutral-900 text-white hover:bg-neutral-800"
-                  : "border-neutral-200 bg-white text-neutral-900 hover:bg-neutral-50"
+                  ? "border-neutral-700 bg-white text-neutral-950 hover:border-neutral-600 hover:bg-neutral-100"
+                  : "border-neutral-200 bg-white text-neutral-900 shadow-sm hover:border-neutral-300 hover:bg-neutral-50 hover:shadow-md"
               }`}
             >
               <GoogleIcon />
               Continue with Google
-            </button>
-
-            {/* Divider */}
-            <div className="my-6 flex items-center gap-4">
-              <div
-                className={`h-px flex-1 ${
-                  dark ? "bg-neutral-800" : "bg-neutral-200"
-                }`}
-              />
-
-              <span
-                className={`text-xs ${
-                  dark ? "text-neutral-600" : "text-neutral-400"
-                }`}
-              >
-                or continue with email
+              <span className="ml-auto text-neutral-400 transition-transform group-hover:translate-x-0.5">
+                →
               </span>
-
-              <div
-                className={`h-px flex-1 ${
-                  dark ? "bg-neutral-800" : "bg-neutral-200"
-                }`}
-              />
-            </div>
-
-            {/* Email */}
-            <form
-              onSubmit={(event) => {
-                event.preventDefault();
-
-                const email = event.currentTarget.email.value;
-
-                onLogin?.("email", email);
-              }}
-            >
-              <label
-                htmlFor="email"
-                className={`mb-2 block text-sm font-medium ${
-                  dark ? "text-neutral-300" : "text-neutral-700"
-                }`}
-              >
-                Email address
-              </label>
-
-              <input
-                id="email"
-                name="email"
-                type="email"
-                required
-                placeholder="you@example.com"
-                className={`w-full rounded-lg border px-3.5 py-3 text-sm outline-none transition ${
-                  dark
-                    ? "border-neutral-800 bg-neutral-900 text-white placeholder:text-neutral-600 focus:border-neutral-600"
-                    : "border-neutral-200 bg-white text-neutral-900 placeholder:text-neutral-400 focus:border-neutral-400"
-                }`}
-              />
-
-              <button
-                type="submit"
-                className={`mt-4 flex w-full items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-medium transition ${
-                  dark
-                    ? "bg-white text-black hover:bg-neutral-200"
-                    : "bg-black text-white hover:bg-neutral-800"
-                }`}
-              >
-                Continue
-                <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
-                  <path
-                    d="M3 8h10M9 4l4 4-4 4"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </button>
-            </form>
+            </button>
 
             {/* Terms */}
             <p
-              className={`mt-5 text-center text-[11px] leading-5 ${
+              className={`mt-6 text-center text-xs leading-5 ${
                 dark ? "text-neutral-600" : "text-neutral-400"
               }`}
             >
@@ -202,7 +139,7 @@ export default function LoginPage({ onBack, onLogin, dark, setDark }) {
           </div>
 
           {/* Sign up */}
-          <p
+          {/* <p
             className={`mt-6 text-center text-sm ${
               dark ? "text-neutral-500" : "text-neutral-500"
             }`}
@@ -218,16 +155,26 @@ export default function LoginPage({ onBack, onLogin, dark, setDark }) {
             >
               Create one
             </button>
-          </p>
+          </p> */}
 
           {/* Product statement */}
-          <div className="mt-12 text-center">
-            <div
-              className={`mx-auto mb-3 h-px w-12 ${
-                dark ? "bg-neutral-800" : "bg-neutral-300"
-              }`}
-            />
-
+          <div className="mt-8 flex items-center justify-center gap-2 text-center">
+            <svg
+              aria-hidden="true"
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              className={dark ? "text-neutral-600" : "text-neutral-400"}
+            >
+              <path
+                d="M7 10V7a5 5 0 0110 0v3m-11 0h12a2 2 0 012 2v7a2 2 0 01-2 2H6a2 2 0 01-2-2v-7a2 2 0 012-2z"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
             <p
               className={`text-xs ${
                 dark ? "text-neutral-700" : "text-neutral-400"
