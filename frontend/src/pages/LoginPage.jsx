@@ -91,82 +91,6 @@ export default function LoginPage({ onBack, onLogin, dark, setDark }) {
               Continue with Google
             </button>
 
-            {/* Divider */}
-            <div className="my-6 flex items-center gap-4">
-              <div
-                className={`h-px flex-1 ${
-                  dark ? "bg-neutral-800" : "bg-neutral-200"
-                }`}
-              />
-
-              <span
-                className={`text-xs ${
-                  dark ? "text-neutral-600" : "text-neutral-400"
-                }`}
-              >
-                or continue with email
-              </span>
-
-              <div
-                className={`h-px flex-1 ${
-                  dark ? "bg-neutral-800" : "bg-neutral-200"
-                }`}
-              />
-            </div>
-
-            {/* Email */}
-            <form
-              onSubmit={(event) => {
-                event.preventDefault();
-
-                const email = event.currentTarget.email.value;
-
-                onLogin?.("email", email);
-              }}
-            >
-              <label
-                htmlFor="email"
-                className={`mb-2 block text-sm font-medium ${
-                  dark ? "text-neutral-300" : "text-neutral-700"
-                }`}
-              >
-                Email address
-              </label>
-
-              <input
-                id="email"
-                name="email"
-                type="email"
-                required
-                placeholder="you@example.com"
-                className={`w-full rounded-lg border px-3.5 py-3 text-sm outline-none transition ${
-                  dark
-                    ? "border-neutral-800 bg-neutral-900 text-white placeholder:text-neutral-600 focus:border-neutral-600"
-                    : "border-neutral-200 bg-white text-neutral-900 placeholder:text-neutral-400 focus:border-neutral-400"
-                }`}
-              />
-
-              <button
-                type="submit"
-                className={`mt-4 flex w-full items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-medium transition ${
-                  dark
-                    ? "bg-white text-black hover:bg-neutral-200"
-                    : "bg-black text-white hover:bg-neutral-800"
-                }`}
-              >
-                Continue
-                <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
-                  <path
-                    d="M3 8h10M9 4l4 4-4 4"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </button>
-            </form>
-
             {/* Terms */}
             <p
               className={`mt-5 text-center text-[11px] leading-5 ${
@@ -201,24 +125,6 @@ export default function LoginPage({ onBack, onLogin, dark, setDark }) {
             </p>
           </div>
 
-          {/* Sign up */}
-          <p
-            className={`mt-6 text-center text-sm ${
-              dark ? "text-neutral-500" : "text-neutral-500"
-            }`}
-          >
-            Don't have an account?{" "}
-            <button
-              onClick={() => onLogin?.("signup")}
-              className={`font-medium underline underline-offset-4 ${
-                dark
-                  ? "text-white decoration-neutral-700 hover:decoration-white"
-                  : "text-neutral-900 decoration-neutral-300 hover:decoration-neutral-900"
-              }`}
-            >
-              Create one
-            </button>
-          </p>
 
           {/* Product statement */}
           <div className="mt-12 text-center">
