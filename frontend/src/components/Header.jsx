@@ -1,5 +1,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import DarkLogo from "../../assets/Logo.png"
+import LightLogo from "../../assets/LightLogo.png"
 
 const API_BASE_URL =
   import.meta.env.API_URL || "http://localhost:8000";
@@ -45,19 +47,13 @@ export default function Header({
         className="group flex items-center gap-2.5"
         aria-label="Back to TailorCV"
       >
-        <div
-          className={`flex h-8 w-8 items-center justify-center rounded-lg text-xs font-semibold transition-transform group-hover:scale-95 ${
-            dark
-              ? "bg-white text-black"
-              : "bg-black text-white"
-          }`}
-        >
-          T
-        </div>
+        <div className="flex items-center gap-2">
+          <img className="w-10" src={DarkLogo} alt="TailorCV"/>
 
-        <span className="text-[15px] font-semibold tracking-tight">
-          TailorCV
-        </span>
+          <span className="text-[15px] font-semibold tracking-tight">
+            TailorCV
+          </span>
+        </div>
       </button>
 
       {/* Right side */}

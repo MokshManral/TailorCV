@@ -1,18 +1,10 @@
-function CharCount({ count, dark }) {
-  return (
-    <span
-      className={`font-mono text-xs ${
-        dark ? "text-neutral-600" : "text-neutral-400"
-      }`}
-    >
-      {count.toLocaleString()} characters
-    </span>
-  );
-}
+
+import InputBox from "./InputBox";
+import FileUpload from "./FileUpload";
 
 export default function InputPanel({
-  resume,
-  setResume,
+  resumeFile,
+  setResumeFile,
   jobDescription,
   setJobDescription,
   onSubmit,
@@ -33,120 +25,49 @@ export default function InputPanel({
           Your materials
         </h2>
 
-        <p
-          className={`mt-1 text-sm ${
-            dark ? "text-neutral-500" : "text-neutral-500"
-          }`}
-        >
-          Paste the two documents you want fitted together.
+        <p className="mt-1 text-sm text-neutral-500">
+          Upload your resume and paste the job description.
         </p>
       </div>
 
       <form
         className="mt-7 flex flex-col gap-6"
-        onSubmit={(event) => {
-          event.preventDefault();
+        onSubmit={(e) => {
+          e.preventDefault();
           onSubmit();
         }}
         noValidate
       >
-        {/* Resume */}
-        <div className="flex flex-col gap-2">
-          <div className="flex items-baseline justify-between">
-            <label
-              htmlFor="resume"
-              className={`text-sm font-medium ${
-                dark ? "text-neutral-300" : "text-neutral-700"
-              }`}
-            >
-              Resume
-            </label>
+        {/* Resume Upload */}
+        <div className="flex flex-col gap-3">
+          <label className="text-sm font-medium">
+            Upload Resume
+          </label>
 
-            <CharCount count={resume.length} dark={dark} />
-          </div>
-
-          <textarea
-            id="resume"
-            name="resume"
-            value={resume}
-            onChange={(event) => setResume(event.target.value)}
-            placeholder="Paste your resume text here..."
-            rows={10}
-            aria-invalid={Boolean(fieldErrors.resume)}
-            aria-describedby={fieldErrors.resume ? "resume-error" : undefined}
-            className={`w-full resize-y rounded-xl border px-4 py-3.5 text-sm leading-6 outline-none transition ${
-              fieldErrors.resume
-                ? dark
-                  ? "border-red-500/60 bg-red-500/5 text-white"
-                  : "border-red-300 bg-red-50 text-neutral-900"
-                : dark
-                  ? "border-neutral-800 bg-neutral-950 text-white placeholder:text-neutral-700 focus:border-neutral-600"
-                  : "border-neutral-200 bg-neutral-50 text-neutral-900 placeholder:text-neutral-400 focus:border-neutral-400 focus:bg-white"
-            }`}
+          <FileUpload
+            file={resumeFile}
+            setFile={setResumeFile}
+            dark={dark}
           />
 
           {fieldErrors.resume && (
-            <p
-              id="resume-error"
-              role="alert"
-              className={`text-sm ${
-                dark ? "text-red-400" : "text-red-600"
-              }`}
-            >
+            <p className="text-sm text-red-500" role="alert">
               {fieldErrors.resume}
             </p>
           )}
         </div>
 
-        {/* Job description */}
-        <div className="flex flex-col gap-2">
-          <div className="flex items-baseline justify-between">
-            <label
-              htmlFor="job-description"
-              className={`text-sm font-medium ${
-                dark ? "text-neutral-300" : "text-neutral-700"
-              }`}
-            >
-              Job description
-            </label>
-
-            <CharCount count={jobDescription.length} dark={dark} />
-          </div>
-
-          <textarea
-            id="job-description"
-            name="job-description"
-            value={jobDescription}
-            onChange={(event) => setJobDescription(event.target.value)}
-            placeholder="Paste the job description here..."
-            rows={10}
-            aria-invalid={Boolean(fieldErrors.jobDescription)}
-            aria-describedby={
-              fieldErrors.jobDescription ? "jd-error" : undefined
-            }
-            className={`w-full resize-y rounded-xl border px-4 py-3.5 text-sm leading-6 outline-none transition ${
-              fieldErrors.jobDescription
-                ? dark
-                  ? "border-red-500/60 bg-red-500/5 text-white"
-                  : "border-red-300 bg-red-50 text-neutral-900"
-                : dark
-                  ? "border-neutral-800 bg-neutral-950 text-white placeholder:text-neutral-700 focus:border-neutral-600"
-                  : "border-neutral-200 bg-neutral-50 text-neutral-900 placeholder:text-neutral-400 focus:border-neutral-400 focus:bg-white"
-            }`}
-          />
-
-          {fieldErrors.jobDescription && (
-            <p
-              id="jd-error"
-              role="alert"
-              className={`text-sm ${
-                dark ? "text-red-400" : "text-red-600"
-              }`}
-            >
-              {fieldErrors.jobDescription}
-            </p>
-          )}
-        </div>
+        {/* Job Description */}
+        <InputBox
+          title="Job Description"
+          name="jobDescription"
+          value={jobDescription}
+          onChange={(e) =>
+            setJobDescription(e.target.value)
+          }
+          fieldErrors={fieldErrors}
+          dark={dark}
+        />
 
         {/* Submit */}
         <button
@@ -160,7 +81,6 @@ export default function InputPanel({
         >
           {isLoading && (
             <span
-              aria-hidden="true"
               className={`h-4 w-4 animate-spin rounded-full border-2 ${
                 dark
                   ? "border-black/20 border-t-black"
@@ -169,7 +89,9 @@ export default function InputPanel({
             />
           )}
 
-          {isLoading ? "Tailoring..." : "Tailor my resume"}
+          {isLoading
+            ? "Analyzing resume..."
+            : "Tailor my resume"}
 
           {!isLoading && (
             <svg
