@@ -49,7 +49,9 @@ Base.metadata.create_all(bind=engine)
 # Session middleware
 app.add_middleware(
     SessionMiddleware,
-    secret_key=os.getenv("SESSION_SECRET", "change-this-secret"),
+    secret_key=os.environ["SESSION_SECRET"],
+    same_site="none" if os.getenv("ENVIRONMENT") == "production" else "lax",
+    https_only=os.getenv("ENVIRONMENT") == "production",
 )
 
 
