@@ -3,8 +3,25 @@ import { useNavigate } from "react-router-dom";
 import DarkLogo from "../../assets/Logo.png"
 import LightLogo from "../../assets/LightLogo.png"
 
-const API_BASE_URL =
-  import.meta.env.API_URL || "http://localhost:8000";
+const getApiBaseUrl = () => {
+  const configuredUrl =
+    import.meta.env.VITE_API_URL || import.meta.env.API_URL;
+
+  if (configuredUrl) {
+    return configuredUrl.replace(/\/$/, "");
+  }
+
+  if (
+    window.location.hostname === "localhost" ||
+    window.location.hostname === "127.0.0.1"
+  ) {
+    return "http://localhost:8000";
+  }
+
+  return window.location.origin;
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 export default function Header({
   dark,

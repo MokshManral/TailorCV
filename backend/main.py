@@ -47,9 +47,17 @@ Base.metadata.create_all(bind=engine)
 
 
 # Session middleware
+SESSION_SECRET = os.getenv("SESSION_SECRET")
+if not SESSION_SECRET:
+    if os.getenv("ENVIRONMENT") == "production":
+        raise RuntimeError(
+            "SESSION_SECRET environment variable is required in production."
+        )
+    SESSION_SECRET = "dev-session-secret"
+
 app.add_middleware(
     SessionMiddleware,
-    secret_key=os.environ["SESSION_SECRET"],
+    secret_key=SESSION_SECRET,
     same_site="none" if os.getenv("ENVIRONMENT") == "production" else "lax",
     https_only=os.getenv("ENVIRONMENT") == "production",
 )
@@ -69,7 +77,7 @@ FRONTEND_ORIGINS = [
     if origin.strip()
 ]
 
-# Include local development origins
+# Include local development origins if not already configured
 for origin in [
     "http://localhost:5173",
     "http://127.0.0.1:5173",

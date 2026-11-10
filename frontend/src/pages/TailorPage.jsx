@@ -7,8 +7,25 @@ import Header from "../components/Header.jsx";
 import ErrorState from "../components/ErrorState.jsx";
 import ResultsPanel from "../components/ResultsPanel.jsx";
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:8000";
+const getApiBaseUrl = () => {
+  const configuredUrl =
+    import.meta.env.VITE_API_URL || import.meta.env.API_URL;
+
+  if (configuredUrl) {
+    return configuredUrl.replace(/\/$/, "");
+  }
+
+  if (
+    window.location.hostname === "localhost" ||
+    window.location.hostname === "127.0.0.1"
+  ) {
+    return "http://localhost:8000";
+  }
+
+  return window.location.origin;
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 const GENERIC_ERROR =
   "Something went wrong while analyzing your resume. Please try again.";
