@@ -1,18 +1,17 @@
-"""Handles communication with the Google Gemini API for resume tailoring."""
+"""Handles communication with Groq API for resume tailoring."""
 
 import json
 import logging
 import os
 
-from google import genai
-from google.genai import types
-
+from groq import Groq
 
 logger = logging.getLogger("resume_tailor.ai_service")
 
-
-MODEL_NAME = os.getenv("GEMINI_MODEL")
-
+MODEL_NAME = os.getenv(
+    "GROQ_MODEL",
+    "openai/gpt-oss-20b"
+)
 
 SYSTEM_PROMPT = """You are an expert technical recruiter and resume writer.
 
@@ -62,7 +61,7 @@ Return ONLY valid JSON matching this exact structure:
 }
 
 Do not return markdown.
-Do not wrap the JSON in ```json.
+Do not wrap the JSON in code fences.
 Do not add commentary outside the JSON.
 """
 
@@ -72,20 +71,18 @@ class AIServiceError(Exception):
 
 
 def _get_client():
-    api_key = os.getenv("GEMINI_API_KEY")
+    api_key = os.getenv("GROQ_API_KEY")
 
     if not api_key:
         raise AIServiceError(
-            "GEMINI_API_KEY is not configured on the server. "
-            "Set it in the server environment variables."
+            "GROQ_API_KEY is not configured on the server."
         )
 
-    if not MODEL_NAME:
-        raise AIServiceError(
-            "GEMINI_MODEL is not configured on the server."
-        )
-
-    return genai.Client(api_key=api_key)
+    return Groq(
+        api_key=api_key,
+        timeout=120.0,
+        max_retries=2,
+    )
 
 
 def _build_user_prompt(
@@ -101,7 +98,8 @@ def _build_user_prompt(
         "-----\n"
         f"{job_description}\n"
         "-----\n\n"
-        "Analyze the match and return the JSON object described in your instructions."
+        "Analyze the match and return the JSON object described "
+        "in your instructions."
     )
 
 
@@ -109,35 +107,49 @@ def tailor_resume(
     resume: str,
     job_description: str,
 ) -> dict:
-    """Call Gemini and return the parsed structured result."""
+    """Call Groq and return parsed structured resume data."""
+
+    if not resume or not resume.strip():
+        raise AIServiceError("Resume content is empty.")
+
+    if not job_description or not job_description.strip():
+        raise AIServiceError("Job description is empty.")
 
     client = _get_client()
 
     try:
-        response = client.models.generate_content(
+        response = client.chat.completions.create(
             model=MODEL_NAME,
-            contents=_build_user_prompt(
-                resume,
-                job_description,
-            ),
-            config=types.GenerateContentConfig(
-                system_instruction=SYSTEM_PROMPT,
-                temperature=0.3,
-                response_mime_type="application/json",
-            ),
+            messages=[
+                {
+                    "role": "system",
+                    "content": SYSTEM_PROMPT,
+                },
+                {
+                    "role": "user",
+                    "content": _build_user_prompt(
+                        resume,
+                        job_description,
+                    ),
+                },
+            ],
+            temperature=0.3,
+            max_completion_tokens=6000,
+            response_format={
+                "type": "json_object"
+            },
+            reasoning_effort="low",
+            reasoning_format="hidden",
         )
 
+        raw_content = response.choices[0].message.content
+
     except Exception as exc:
-        logger.exception(
-            "Gemini API error: %s",
-            exc,
-        )
+        logger.exception("Groq API error: %s", exc)
 
         raise AIServiceError(
             "The AI service returned an error. Please try again."
         ) from exc
-
-    raw_content = response.text
 
     if not raw_content:
         raise AIServiceError(
@@ -149,13 +161,18 @@ def tailor_resume(
 
     except json.JSONDecodeError as exc:
         logger.error(
-            "Failed to parse Gemini JSON response: %s",
+            "Failed to parse Groq JSON response: %s",
             raw_content[:500],
         )
 
         raise AIServiceError(
             "The AI service returned an invalid response."
         ) from exc
+
+    if not isinstance(data, dict):
+        raise AIServiceError(
+            "The AI service returned an invalid JSON object."
+        )
 
     required_keys = {
         "match_score",
@@ -177,5 +194,32 @@ def tailor_resume(
         raise AIServiceError(
             "The AI service returned incomplete data."
         )
+
+    if (
+        not isinstance(data["match_score"], (int, float))
+        or isinstance(data["match_score"], bool)
+        or not 0 <= data["match_score"] <= 100
+    ):
+        raise AIServiceError("Invalid match score.")
+
+    if not isinstance(data["summary"], str):
+        raise AIServiceError("Invalid summary.")
+
+    if not isinstance(data["matched_keywords"], list):
+        raise AIServiceError("Invalid matched keywords.")
+
+    if not isinstance(data["missing_keywords"], list):
+        raise AIServiceError("Invalid missing keywords.")
+
+    if not isinstance(data["suggestions"], list):
+        raise AIServiceError("Invalid suggestions.")
+
+    if not isinstance(data["tailored_resume"], str):
+        raise AIServiceError("Invalid tailored resume.")
+
+    logger.info(
+        "Resume successfully tailored using Groq model: %s",
+        MODEL_NAME,
+    )
 
     return data
