@@ -401,8 +401,8 @@ export default function Hero({ dark, setDark }) {
                   }`}
                 >
                   Get a tailored resume in text, a match score, matching and
-                  missing keywords, and actionable AI suggestions. Download your
-                  tailored resume as a PDF.
+                  missing keywords, and actionable AI suggestions. Download an
+                  editable LaTeX source file for your tailored resume.
                 </p>
 
                 <div className="mt-7 space-y-4 text-sm">
@@ -410,7 +410,7 @@ export default function Hero({ dark, setDark }) {
                     "Tailored resume",
                     "Resume match score",
                     "Missing keyword insights",
-                    "PDF download",
+                    "LaTeX source download",
                   ].map((item) => (
                     <div key={item} className="flex items-center gap-3">
                       <span className="flex h-6 w-6 items-center justify-center rounded-full bg-neutral-100 text-xs text-black dark:bg-neutral-900 dark:text-white">

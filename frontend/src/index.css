@@ -2,6 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+.resume-document {
+  font-family: "Times New Roman", Times, serif;
+}
+
 html{
   background: #fafafa;
 }
