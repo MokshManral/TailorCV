@@ -4,19 +4,22 @@
 
 TailorCV is an AI-powered resume tailoring application that analyzes your resume against a specific job description and helps you create a more relevant, ATS-friendly version.
 
-Sign in with Google, paste your resume, add the job description, and get an AI-powered analysis with a **match score, keywords, improvement suggestions, and a tailored resume** — without inventing experience or qualifications.
+Sign in with Google, paste (or upload) your resume, add the job description, and get an AI-powered analysis with a **match score, keywords, improvement suggestions, and a tailored resume** — without inventing experience or qualifications.
 
 ## ✨ Features
 
 * 🔐 Google OAuth sign-in with HttpOnly JWT cookie sessions
 * 🛡️ Protected tailoring route — analysis requires an authenticated user
-* 🤖 AI-powered resume and job description analysis (Google Gemini)
+* 📝 Paste your resume as text, or upload a PDF/DOCX file
+* 🧾 Bring your own LaTeX resume: the AI tailors the wording while your template stays byte-for-byte the same
+* 🤖 AI-powered resume and job description analysis (Google Gemini, with optional Groq fallback)
 * 📊 Resume-to-job match score
 * 🔑 Matched keywords
 * ⚠️ Missing keywords
 * 💡 Actionable improvement suggestions
 * 📄 ATS-friendly tailored resume
 * 📋 One-click copy for the tailored resume
+* 📥 One-page PDF download and editable LaTeX (.tex) export
 * ⚡ Clear loading and error states
 * 📱 Responsive interface
 * 🌙 Light and dark themes (persisted in `localStorage`)
@@ -40,7 +43,9 @@ Sign in with Google, paste your resume, add the job description, and get an AI-p
 * SQLAlchemy + PostgreSQL (`psycopg`)
 * Authlib (Google OAuth) + Starlette `SessionMiddleware`
 * python-jose (JWT)
-* Google Gemini API (`google-genai`)
+* Google Gemini API (`google-genai`); Groq (`groq`) as an optional fallback
+* `pdflatex` (TeX Live / MacTeX) for PDF export
+* `pypdf` and `python-docx` for resume file uploads
 
 ## 📁 Project Structure
 
@@ -53,11 +58,12 @@ resume-tailor/
 │   │   │   ├── InputPanel.jsx
 │   │   │   ├── ResultsPanel.jsx
 │   │   │   ├── TailoredResume.jsx
+│   │   │   ├── LatexResult.jsx
+│   │   │   ├── resumeFormatting.js
 │   │   │   ├── MatchScoreTape.jsx
 │   │   │   ├── KeywordBadges.jsx
 │   │   │   ├── Suggestions.jsx
 │   │   │   ├── EmptyState.jsx
-│   │   │   ├── LoadingState.jsx
 │   │   │   └── ErrorState.jsx
 │   │   │
 │   │   ├── pages/
@@ -66,6 +72,9 @@ resume-tailor/
 │   │   │   ├── TailorPage.jsx
 │   │   │   ├── TermsPage.jsx
 │   │   │   └── PrivacyPolicyPage.jsx
+│   │   │
+│   │   ├── lib/
+│   │   │   └── api.js         # Backend base URL (VITE_API_URL)
 │   │   │
 │   │   ├── App.jsx
 │   │   ├── main.jsx
@@ -84,7 +93,9 @@ resume-tailor/
 │   ├── models.py          # Pydantic schemas + SQLAlchemy UserDB
 │   ├── database.py        # Engine, session, Base, get_db
 │   ├── services/
-│   │   └── ai_service.py  # Gemini prompt + response parsing
+│   │   ├── ai_service.py     # Gemini (Groq fallback) prompt + response parsing
+│   │   ├── latex_service.py  # LaTeX resume template, safety checks, PDF compile
+│   │   └── latex_tailor_service.py  # Tailor a user's own LaTeX resume
 │   └── requirements.txt
 │
 └── README.md
@@ -101,6 +112,7 @@ Make sure you have the following installed:
 * Python 3.10+
 * PostgreSQL (local instance or a hosted database)
 * A Gemini API key
+* A TeX distribution providing `pdflatex` (for PDF export), e.g. MacTeX/BasicTeX on macOS or `texlive-latex-base texlive-latex-recommended texlive-latex-extra texlive-fonts-recommended lmodern` on Debian/Ubuntu
 * Google OAuth credentials (client ID and secret)
 
 ### 1. Clone the repository
@@ -133,6 +145,10 @@ Create a `.env` file inside the `backend` directory (see `backend/.env.example`)
 ```env
 GEMINI_API_KEY=your_gemini_api_key
 GEMINI_MODEL=gemini-3.6-flash
+
+# Optional fallback, used if Gemini is not configured or its request fails
+GROQ_API_KEY=
+GROQ_MODEL=openai/gpt-oss-20b
 
 FRONTEND_URL=http://localhost:5173
 
@@ -215,7 +231,10 @@ http://localhost:5173
 | Variable               | Required | Default              | Description                                                        |
 | ---------------------- | -------- | -------------------- | ------------------------------------------------------------------ |
 | `GEMINI_API_KEY`       | Yes      | —                    | Gemini API key used by the backend                                 |
-| `GEMINI_MODEL`         | Yes      | —                    | Gemini model used for resume analysis                              |
+| `GEMINI_MODEL`         | No       | `gemini-3.6-flash`   | Gemini model used for resume analysis                              |
+| `GROQ_API_KEY`         | No       | —                    | Optional fallback provider, used if Gemini is unset or fails       |
+| `GROQ_MODEL`           | No       | `openai/gpt-oss-20b` | Groq model used for the fallback                                   |
+| `PDFLATEX_PATH`        | No       | found on `PATH`      | Path to `pdflatex`, if it is not on `PATH`                         |
 | `DATABASE_URL`         | Yes      | —                    | SQLAlchemy PostgreSQL URL; the app fails to start without it       |
 | `GOOGLE_CLIENT_ID`     | Yes      | —                    | Google OAuth client ID                                             |
 | `GOOGLE_CLIENT_SECRET` | Yes      | —                    | Google OAuth client secret                                         |
@@ -281,12 +300,13 @@ requests without a valid `access_token` cookie return `401`.
 
 #### Request
 
-```json
-{
-  "resume": "Your resume...",
-  "job_description": "Job description..."
-}
-```
+`multipart/form-data` with:
+
+| Field             | Required | Description                                            |
+| ----------------- | -------- | ------------------------------------------------------ |
+| `job_description` | Yes      | The target job description text                        |
+| `resume_text`     | One of   | The resume pasted as plain text (takes precedence)     |
+| `resume_file`     | One of   | The resume as a PDF or DOCX file (max 10 MB)           |
 
 #### Response
 
@@ -308,9 +328,48 @@ requests without a valid `access_token` cookie return `401`.
 
 | Status | Meaning                                                    |
 | ------ | ---------------------------------------------------------- |
-| `400`  | Invalid request body (e.g. empty resume or job description) |
+| `400`  | Invalid request (e.g. no resume, empty job description, unsupported file) |
 | `401`  | Missing, invalid, or expired authentication cookie          |
-| `502`  | Gemini call failed or returned an unexpected format         |
+| `502`  | The AI call failed or returned an unexpected format         |
+
+### `POST /api/resume/pdf` and `POST /api/resume/tex`
+
+Render the tailored resume as a compiled PDF or as editable LaTeX source.
+**Requires authentication.** The body holds the preview blocks produced by
+`frontend/src/components/resumeFormatting.js`:
+
+```json
+{
+  "blocks": [
+    { "type": "name", "text": "Jane Doe" },
+    { "type": "entry", "text": "Acme Corp", "right": "Jan 2023 – Present" },
+    { "type": "bullet", "text": "Built REST APIs" },
+    { "type": "text", "label": "Languages", "text": "Python, SQL" }
+  ]
+}
+```
+
+Block `type` is one of `name`, `contact`, `section`, `entry`, `subentry`,
+`bullet`, `text`, `spacer`; `right` and `label` are optional. PDFs are compiled
+server-side with `pdflatex` and automatically tightened to fit one page; a
+`502` is returned if compilation fails.
+
+### `POST /api/tailor/latex`
+
+Tailors a user's own LaTeX resume. **Requires authentication.**
+`multipart/form-data` with `job_description` plus either `latex_source`
+(pasted text) or `latex_file` (a `.tex` upload, max 1 MB).
+
+The preamble (everything up to `\begin{document}`) is kept unchanged; only the
+body is sent to the AI. The original is compiled first, so a missing package is
+reported as a `400`. The edited body is checked for unsafe commands and lost
+content, then compiled; if compiling fails, the AI gets one chance to fix it.
+
+Returns the `/api/tailor` fields plus `tailored_latex` (the full document),
+`pdf_base64` (the compiled PDF), `page_count` and `original_page_count`.
+Templates may not use file, shell or catcode commands such as `\input`
+(except `\input{glyphtounicode}`), `\include`, `\write18`, `\catcode`,
+`\csname` or `\includegraphics`.
 
 ### `GET /api/health` (also `HEAD`)
 
@@ -332,7 +391,8 @@ The app is designed to run as two separately deployed services:
   Set `VITE_API_URL` to the deployed backend URL.
 * **Backend** — an ASGI service (e.g. Render) started with
   `uvicorn main:app --host 0.0.0.0 --port $PORT`, backed by a managed
-  PostgreSQL database.
+  PostgreSQL database. PDF export needs `pdflatex` on the server, so use an
+  image or build step that installs TeX Live (see Prerequisites).
 
 For production, remember to:
 
@@ -348,9 +408,11 @@ For production, remember to:
 * Google is the only sign-in method; TailorCV never handles passwords.
 * Session JWTs are stored in HttpOnly cookies, so they are not readable from JavaScript.
 * Cookies are `Secure` and `SameSite=None` in production, `SameSite=Lax` locally.
-* `/api/tailor` is protected — unauthenticated requests are rejected with `401`.
+* `/api/tailor` and the `/api/resume/*` export endpoints are protected — unauthenticated requests are rejected with `401`.
+* PDF export only typesets escaped resume text; `pdflatex` runs with shell escape disabled, file access limited to its temp directory, and a timeout.
+* User-supplied LaTeX is rejected if it uses file, shell or catcode commands, as a second layer of defense.
 * Inactive accounts (`is_active = false`) cannot log in or make requests.
-* Gemini API credentials are kept on the backend and never exposed to the frontend.
+* AI provider credentials are kept on the backend and never exposed to the frontend.
 * CORS is restricted to the configured frontend origin(s), with credentials allowed.
 * `.env` files should not be committed to GitHub.
 * The AI is instructed not to fabricate employers, degrees, skills, experience, or achievements.
@@ -363,7 +425,7 @@ TailorCV is currently an **MVP**.
 The current version covers the core workflow:
 
 ```text
-Google Sign-In → Resume → Job Description → AI Analysis → Tailored Resume
+Google Sign-In → Resume → Job Description → AI Analysis → Match Score → Keywords → Suggestions → Tailored Resume → Copy / Download PDF
 ```
 
 Only user accounts are persisted. Resumes, job descriptions, and analysis
@@ -375,8 +437,8 @@ results are not stored.
 * [x] User accounts
 * [ ] Saved resume versions
 * [ ] Resume history
-* [ ] PDF and DOCX resume uploads
-* [ ] PDF and DOCX export
+* [x] PDF and DOCX resume uploads
+* [x] PDF and LaTeX (.tex) export
 * [ ] Usage limits and rate limiting
 * [ ] Refresh tokens / longer sessions
 * [ ] Database migrations (Alembic)

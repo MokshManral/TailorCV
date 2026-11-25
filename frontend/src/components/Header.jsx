@@ -1,45 +1,18 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import DarkLogo from "../../assets/Logo.png"
-import LightLogo from "../../assets/LightLogo.png"
+import DarkLogo from "../../assets/Logo.png";
+import LightLogo from "../../assets/LightLogo.png";
+import { API_BASE_URL } from "../lib/api.js";
 
-const getApiBaseUrl = () => {
-  const configuredUrl =
-    import.meta.env.VITE_API_URL || import.meta.env.API_URL;
-
-  if (configuredUrl) {
-    return configuredUrl.replace(/\/$/, "");
-  }
-
-  if (
-    window.location.hostname === "localhost" ||
-    window.location.hostname === "127.0.0.1"
-  ) {
-    return "http://localhost:8000";
-  }
-
-  return window.location.origin;
-};
-
-const API_BASE_URL = getApiBaseUrl();
-
-export default function Header({
-  dark,
-  setDark,
-  user,
-  setUser,
-}) {
+export default function Header({ dark, setDark, user, setUser }) {
   const navigate = useNavigate();
 
   const handleLogout = async () => {
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/auth/logout`,
-        {
-          method: "POST",
-          credentials: "include",
-        }
-      );
+      const response = await fetch(`${API_BASE_URL}/auth/logout`, {
+        method: "POST",
+        credentials: "include",
+      });
 
       if (!response.ok) {
         throw new Error("Logout failed");
@@ -65,7 +38,7 @@ export default function Header({
         aria-label="Back to TailorCV"
       >
         <div className="flex items-center gap-2">
-          <img className="w-10" src={DarkLogo} alt="TailorCV"/>
+          <img className="w-10" src={DarkLogo} alt="TailorCV" />
 
           <span className="text-[15px] font-semibold tracking-tight">
             TailorCV

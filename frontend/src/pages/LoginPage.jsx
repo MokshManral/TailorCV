@@ -1,26 +1,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "../components/Header";
-
-const getApiBaseUrl = () => {
-  const configuredUrl =
-    import.meta.env.VITE_API_URL || import.meta.env.API_URL;
-
-  if (configuredUrl) {
-    return configuredUrl.replace(/\/$/, "");
-  }
-
-  if (
-    window.location.hostname === "localhost" ||
-    window.location.hostname === "127.0.0.1"
-  ) {
-    return "http://localhost:8000";
-  }
-
-  return window.location.origin;
-};
-
-const API_BASE_URL = getApiBaseUrl();
+import { API_BASE_URL } from "../lib/api.js";
 
 export default function LoginPage({ onBack, onLogin, dark, setDark }) {
   const navigate = useNavigate();
@@ -41,7 +22,6 @@ export default function LoginPage({ onBack, onLogin, dark, setDark }) {
       {/* Main */}
       <section className="flex min-h-[calc(100vh-80px)] items-center justify-center px-6 py-12">
         <div className="w-full max-w-[420px]">
-
           {/* Back */}
           <button
             onClick={() => navigate("/")}
@@ -141,7 +121,6 @@ export default function LoginPage({ onBack, onLogin, dark, setDark }) {
               .
             </p>
           </div>
-
 
           {/* Product statement */}
           <div className="mt-12 text-center">

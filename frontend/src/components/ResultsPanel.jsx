@@ -1,124 +1,43 @@
-
 import MatchScoreTape from "./MatchScoreTape.jsx";
 import KeywordBadges from "./KeywordBadges.jsx";
 import Suggestions from "./Suggestions.jsx";
 import TailoredResume from "./TailoredResume.jsx";
+import LatexResult from "./LatexResult.jsx";
+import { useState } from "react";
 import { formatResumeText } from "./resumeFormatting.js";
+import { API_BASE_URL } from "../lib/api.js";
 
-function escapeLatex(value) {
-  return value.replace(/[\\{}$&#%_~^]/g, (character) => {
-    const replacements = {
-      "\\": "\\textbackslash{}",
-      "{": "\\{",
-      "}": "\\}",
-      "$": "\\$",
-      "&": "\\&",
-      "#": "\\#",
-      "%": "\\%",
-      "_": "\\_",
-      "~": "\\textasciitilde{}",
-      "^": "\\textasciicircum{}",
-    };
-
-    return replacements[character];
-  });
-}
-
-function createLatexResume(text) {
+// Ask the backend to render the resume as .tex or compile it to .pdf,
+// using the same blocks shown in the preview so the layout matches.
+async function downloadResume(text, format) {
   const blocks = formatResumeText(text);
-  const lines = [
-    "\\documentclass[10pt,a4paper]{article}",
-    "\\usepackage[T1]{fontenc}",
-    "\\usepackage[utf8]{inputenc}",
-    "\\usepackage{lmodern}",
-    "\\usepackage{microtype}",
-    "\\usepackage{xcolor}",
-    "\\usepackage{titlesec}",
-    "\\usepackage{enumitem}",
-    "\\usepackage[hidelinks]{hyperref}",
-    "\\usepackage[top=0.45in,bottom=0.45in,left=0.60in,right=0.60in]{geometry}",
-    "\\definecolor{navy}{HTML}{172554}",
-    "\\definecolor{bodycolor}{HTML}{222222}",
-    "\\pagestyle{empty}",
-    "\\setlength{\\parindent}{0pt}",
-    "\\setlength{\\parskip}{0pt}",
-    "\\setlength{\\emergencystretch}{2em}",
-    "\\color{bodycolor}",
-    "\\setlist[itemize]{leftmargin=16pt,itemsep=1pt,topsep=2pt,parsep=0pt,partopsep=0pt}",
-    "\\titleformat{\\section}{\\large\\bfseries\\color{navy}}{}{0em}{\\MakeUppercase}[\\vspace{1pt}\\color{navy}\\titlerule]",
-    "\\titlespacing*{\\section}{0pt}{9pt}{4pt}",
-    "\\begin{document}",
-  ];
+  if (blocks.length === 0) return;
 
-  let bulletsOpen = false;
-  let headerOpen = false;
-  const closeBullets = () => {
-    if (bulletsOpen) {
-      lines.push("\\end{itemize}");
-      bulletsOpen = false;
-    }
-  };
-  const closeHeader = () => {
-    if (headerOpen) {
-      lines.push("\\end{center}", "\\vspace{-5pt}");
-      headerOpen = false;
-    }
-  };
+  const response = await fetch(`${API_BASE_URL}/api/resume/${format}`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ blocks }),
+  });
 
-  for (const block of blocks) {
-    if (block.type === "spacer") continue;
-
-    if (block.type === "name") {
-      closeBullets();
-      closeHeader();
-      lines.push("\\begin{center}");
-      headerOpen = true;
-      lines.push(`{\\fontsize{23}{26}\\selectfont\\textbf{\\color{navy}${escapeLatex(block.text)}}}\\\\[4pt]`);
-      continue;
-    }
-
-    if (block.type === "contact") {
-      lines.push(`\\small ${escapeLatex(block.text)}`);
-      closeHeader();
-      continue;
-    }
-
-    closeHeader();
-
-    if (block.type === "section") {
-      closeBullets();
-      lines.push(`\\section{${escapeLatex(block.text)}}`);
-      continue;
-    }
-
-    if (block.type === "bullet") {
-      if (!bulletsOpen) {
-        lines.push("\\begin{itemize}");
-        bulletsOpen = true;
+  if (!response.ok) {
+    let message = `Could not download the ${format.toUpperCase()} file.`;
+    try {
+      const data = await response.json();
+      if (data?.detail && typeof data.detail === "string") {
+        message = data.detail;
       }
-      lines.push(`\\item ${escapeLatex(block.text)}`);
-      continue;
+    } catch {
+      // Keep the default message.
     }
-
-    closeBullets();
-    lines.push(`${escapeLatex(block.text)}\\\\`);
+    throw new Error(message);
   }
 
-  closeBullets();
-  closeHeader();
-  lines.push("\\end{document}");
-  return lines.join("\n");
-}
-
-function downloadLatex(text) {
-  if (!text || typeof text !== "string") return;
-
-  const source = createLatexResume(text);
-  const file = new Blob([source], { type: "application/x-tex;charset=utf-8" });
+  const file = await response.blob();
   const url = URL.createObjectURL(file);
   const link = document.createElement("a");
   link.href = url;
-  link.download = "TailorCV-Tailored-Resume.tex";
+  link.download = `TailorCV-Tailored-Resume.${format}`;
   document.body.appendChild(link);
   link.click();
   link.remove();
@@ -145,10 +64,7 @@ function ResultsSkeleton({ dark }) {
   return (
     <div className="flex flex-col gap-5">
       {[1, 2, 3, 4].map((item) => (
-        <div
-          key={item}
-          className={`rounded-2xl border p-6 ${card}`}
-        >
+        <div key={item} className={`rounded-2xl border p-6 ${card}`}>
           <Skeleton dark={dark} className="h-5 w-40" />
           <Skeleton dark={dark} className="mt-5 h-4 w-full" />
           <Skeleton dark={dark} className="mt-3 h-4 w-4/5" />
@@ -165,6 +81,9 @@ export default function ResultsPanel({
   dark,
   loading = false,
 }) {
+  const [downloading, setDownloading] = useState(null);
+  const [downloadError, setDownloadError] = useState("");
+
   if (loading) {
     return <ResultsSkeleton dark={dark} />;
   }
@@ -172,55 +91,92 @@ export default function ResultsPanel({
   if (!result) return null;
 
   const resumeText = result.tailored_resume;
+  const canDownload =
+    Boolean(resumeText) && typeof resumeText === "string" && !downloading;
+
+  const handleDownload = async (format) => {
+    setDownloading(format);
+    setDownloadError("");
+    try {
+      await downloadResume(resumeText, format);
+    } catch (error) {
+      setDownloadError(error.message);
+    } finally {
+      setDownloading(null);
+    }
+  };
 
   const card = dark
     ? "border-neutral-800 bg-[#111]"
     : "border-neutral-200 bg-white";
 
-  const muted = dark
-    ? "text-neutral-400"
-    : "text-neutral-500";
+  const muted = dark ? "text-neutral-400" : "text-neutral-500";
 
   return (
     <div className="flex flex-col gap-8">
-
       {/* STEP 01 - TAILORED RESUME */}
       <section>
-        <TailoredResume
-          resumeText={resumeText}
-          dark={dark}
-        />
+        {result.tailored_latex ? (
+          <LatexResult result={result} dark={dark} />
+        ) : (
+          <>
+            <TailoredResume resumeText={resumeText} dark={dark} />
 
-        {/* DOWNLOAD LATEX SOURCE */}
-        <div
-          className={`mt-6 border-t pt-5 ${
-            dark
-              ? "border-neutral-800"
-              : "border-neutral-200"
-          }`}
-        >
-          <p className={`mb-4 text-xs ${muted}`}>
-            Download the editable LaTeX source for your resume.
-          </p>
-
-          <div>
-            <button
-              type="button"
-              onClick={() => downloadLatex(resumeText)}
-              disabled={!resumeText || typeof resumeText !== "string"}
-              className={`flex w-full items-center justify-center gap-2 rounded-lg border px-5 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-40 ${
-                dark
-                  ? "border-neutral-700 text-white hover:bg-neutral-900"
-                  : "border-neutral-300 text-neutral-800 hover:bg-neutral-100"
+            {/* DOWNLOAD RESUME */}
+            <div
+              className={`mt-6 border-t pt-5 ${
+                dark ? "border-neutral-800" : "border-neutral-200"
               }`}
             >
-              Download Resume (.tex)
-            </button>
-          </div>
-        </div>
-        <p className="pt-2 text-xs text-neutral-500 text-red-500">
-          Open the .tex file in a LaTeX editor, such as Overleaf, to customize or compile it.
-        </p>
+              <p className={`mb-4 text-xs ${muted}`}>
+                Download your resume as a ready-to-send PDF, or as editable
+                LaTeX source.
+              </p>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={() => handleDownload("pdf")}
+                  disabled={!canDownload}
+                  className={`flex w-full items-center justify-center gap-2 rounded-lg px-5 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-40 ${
+                    dark
+                      ? "bg-white text-black hover:bg-neutral-200"
+                      : "bg-neutral-900 text-white hover:bg-neutral-700"
+                  }`}
+                >
+                  {downloading === "pdf"
+                    ? "Generating PDF..."
+                    : "Download Resume (.pdf)"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleDownload("tex")}
+                  disabled={!canDownload}
+                  className={`flex w-full items-center justify-center gap-2 rounded-lg border px-5 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-40 ${
+                    dark
+                      ? "border-neutral-700 text-white hover:bg-neutral-900"
+                      : "border-neutral-300 text-neutral-800 hover:bg-neutral-100"
+                  }`}
+                >
+                  {downloading === "tex"
+                    ? "Preparing..."
+                    : "Download Source (.tex)"}
+                </button>
+              </div>
+
+              {downloadError && (
+                <p className="pt-3 text-xs text-red-500" role="alert">
+                  {downloadError}
+                </p>
+              )}
+            </div>
+            <p className={`pt-2 text-xs ${muted}`}>
+              Open the .tex file in a LaTeX editor, such as Overleaf, to
+              customize it.
+            </p>
+          </>
+        )}
       </section>
 
       {/* STEP 02 - MATCH SCORE */}
@@ -235,7 +191,6 @@ export default function ResultsPanel({
       {/* STEP 03 - KEYWORDS */}
       <section>
         <div className="grid gap-5">
-
           <KeywordBadges
             title="Matching keywords"
             keywords={result.matched_keywords}
@@ -251,16 +206,12 @@ export default function ResultsPanel({
             emptyLabel="No major gaps found."
             dark={dark}
           />
-
         </div>
       </section>
 
       {/* STEP 04 - SUGGESTIONS */}
       <section>
-        <Suggestions
-          suggestions={result.suggestions}
-          dark={dark}
-        />
+        <Suggestions suggestions={result.suggestions} dark={dark} />
       </section>
 
       {/* BOTTOM MESSAGE */}
@@ -285,7 +236,6 @@ export default function ResultsPanel({
           + Start a new analysis
         </button>
       </div>
-
     </div>
   );
 }

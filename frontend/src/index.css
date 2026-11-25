@@ -6,7 +6,7 @@
   font-family: "Times New Roman", Times, serif;
 }
 
-html{
+html {
   background: #fafafa;
 }
 
@@ -14,7 +14,9 @@ html{
   html {
     -webkit-font-smoothing: antialiased;
     color-scheme: light;
-    transition: background-color 300ms ease, color 300ms ease;
+    transition:
+      background-color 300ms ease,
+      color 300ms ease;
   }
 
   html.dark {

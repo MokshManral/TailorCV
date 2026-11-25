@@ -30,9 +30,7 @@ export default function MatchScoreTape({ score, summary, dark }) {
   return (
     <div
       className={`rounded-2xl border p-6 transition-colors duration-300 sm:p-7 ${
-        dark
-          ? "border-neutral-800 bg-[#0e0e0e]"
-          : "border-neutral-200 bg-white"
+        dark ? "border-neutral-800 bg-[#0e0e0e]" : "border-neutral-200 bg-white"
       }`}
     >
       {/* Header */}

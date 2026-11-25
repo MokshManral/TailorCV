@@ -1,4 +1,3 @@
-
 """TailorCV backend - FastAPI application."""
 
 import logging
@@ -9,27 +8,39 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+from docx import Document
 from fastapi import (
-    FastAPI,
-    HTTPException,
     Depends,
-    UploadFile,
+    FastAPI,
     File,
     Form,
+    HTTPException,
+    UploadFile,
 )
+from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from pydantic import ValidationError
+from pypdf import PdfReader
 from starlette.middleware.sessions import SessionMiddleware
 
-from pypdf import PdfReader
-from docx import Document
-
+from auth import get_current_user
+from auth import router as auth_router
 from database import Base, engine
-from models import ErrorResponse, TailorResponse
+from models import (
+    ErrorResponse,
+    LatexTailorResponse,
+    ResumeExportRequest,
+    TailorResponse,
+)
 from services.ai_service import AIServiceError, tailor_resume
-from auth import router as auth_router, get_current_user
-
+from services.latex_service import (
+    LatexError,
+    build_latex,
+    pdflatex_available,
+    render_one_page,
+)
+from services.latex_tailor_service import LatexInputError, tailor_latex_resume
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("resume_tailor")
@@ -105,26 +116,18 @@ def extract_resume_text(filename: str, file_bytes: bytes) -> str:
         if extension == ".pdf":
             pdf = PdfReader(BytesIO(file_bytes))
 
-            text = "\n".join(
-                page.extract_text() or ""
-                for page in pdf.pages
-            )
+            text = "\n".join(page.extract_text() or "" for page in pdf.pages)
 
         # DOCX
         elif extension == ".docx":
             document = Document(BytesIO(file_bytes))
 
-            text = "\n".join(
-                paragraph.text
-                for paragraph in document.paragraphs
-            )
+            text = "\n".join(paragraph.text for paragraph in document.paragraphs)
 
             # Also extract table text
             for table in document.tables:
                 for row in table.rows:
-                    text += "\n" + " ".join(
-                        cell.text for cell in row.cells
-                    )
+                    text += "\n" + " ".join(cell.text for cell in row.cells)
 
         else:
             raise HTTPException(
@@ -136,8 +139,7 @@ def extract_resume_text(filename: str, file_bytes: bytes) -> str:
             raise HTTPException(
                 status_code=400,
                 detail=(
-                    "No readable text found in your resume. "
-                    "Scanned PDFs require OCR."
+                    "No readable text found in your resume. Scanned PDFs require OCR."
                 ),
             )
 
@@ -171,44 +173,21 @@ def health_check() -> dict:
     },
 )
 async def tailor(
-    resume_file: UploadFile = File(...),
     job_description: str = Form(...),
+    resume_text: str | None = Form(None),
+    resume_file: UploadFile | None = File(None),
     current_user=Depends(get_current_user),
 ) -> TailorResponse:
     """
-    Upload a PDF or DOCX resume and analyze it
-    against a job description.
+    Analyze a resume against a job description.
+
+    The resume is either pasted as text (``resume_text``) or uploaded as a
+    PDF/DOCX file (``resume_file``). Pasted text takes precedence.
 
     User must be authenticated.
     """
 
     try:
-        # Validate filename
-        filename = resume_file.filename or ""
-
-        extension = os.path.splitext(filename)[1].lower()
-
-        if extension not in [".pdf", ".docx"]:
-            raise HTTPException(
-                status_code=400,
-                detail="Only PDF and DOCX files are supported.",
-            )
-
-        # Read uploaded file (10 MB maximum)
-        file_bytes = await resume_file.read(10 * 1024 * 1024 + 1)
-
-        if not file_bytes:
-            raise HTTPException(
-                status_code=400,
-                detail="Uploaded resume is empty.",
-            )
-
-        if len(file_bytes) > 10 * 1024 * 1024:
-            raise HTTPException(
-                status_code=400,
-                detail="Resume file must be smaller than 10 MB.",
-            )
-
         # Validate job description
         if not job_description.strip():
             raise HTTPException(
@@ -216,19 +195,56 @@ async def tailor(
                 detail="Please provide a job description.",
             )
 
-        # Extract resume text
-        resume_text = extract_resume_text(
-            filename,
-            file_bytes,
-        )
+        if resume_text and resume_text.strip():
+            resume_text = resume_text.strip()
+
+            if len(resume_text) > 50_000:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Resume text is too long (50,000 characters maximum).",
+                )
+
+        elif resume_file is not None and resume_file.filename:
+            filename = resume_file.filename
+            extension = os.path.splitext(filename)[1].lower()
+
+            if extension not in [".pdf", ".docx"]:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Only PDF and DOCX files are supported.",
+                )
+
+            # Read uploaded file (10 MB maximum)
+            file_bytes = await resume_file.read(10 * 1024 * 1024 + 1)
+
+            if not file_bytes:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Uploaded resume is empty.",
+                )
+
+            if len(file_bytes) > 10 * 1024 * 1024:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Resume file must be smaller than 10 MB.",
+                )
+
+            resume_text = extract_resume_text(filename, file_bytes)
+
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail="Please paste your resume or upload a PDF/DOCX file.",
+            )
 
         logger.info(
-            "Resume extracted successfully: %s characters",
+            "Resume received: %s characters",
             len(resume_text),
         )
 
-        # Existing AI service
-        result = tailor_resume(
+        # Run the blocking AI call off the event loop
+        result = await run_in_threadpool(
+            tailor_resume,
             resume_text,
             job_description,
         )
@@ -268,6 +284,145 @@ async def tailor(
             status_code=500,
             detail="Resume analysis failed. Please try again.",
         ) from exc
+
+
+# Tailor a LaTeX resume, keeping the user's own template
+@app.post(
+    "/api/tailor/latex",
+    response_model=LatexTailorResponse,
+    responses={
+        400: {"model": ErrorResponse},
+        401: {"model": ErrorResponse},
+        502: {"model": ErrorResponse},
+    },
+)
+async def tailor_latex(
+    job_description: str = Form(...),
+    latex_source: str | None = Form(None),
+    latex_file: UploadFile | None = File(None),
+    current_user=Depends(get_current_user),
+) -> LatexTailorResponse:
+    """
+    Tailor a LaTeX resume to a job description.
+
+    The LaTeX is either pasted (``latex_source``) or uploaded as a ``.tex``
+    file (``latex_file``). The preamble is kept unchanged; only the body is
+    edited. Returns the tailored LaTeX and its compiled PDF.
+
+    User must be authenticated.
+    """
+    if not job_description.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="Please provide a job description.",
+        )
+
+    source = latex_source or ""
+
+    if not source.strip() and latex_file is not None and latex_file.filename:
+        if not latex_file.filename.lower().endswith(".tex"):
+            raise HTTPException(
+                status_code=400,
+                detail="Please upload a .tex file.",
+            )
+        raw = await latex_file.read(1024 * 1024 + 1)
+        if len(raw) > 1024 * 1024:
+            raise HTTPException(
+                status_code=400,
+                detail="LaTeX file must be smaller than 1 MB.",
+            )
+        source = raw.decode("utf-8", errors="replace")
+
+    if not source.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="Please paste your LaTeX resume or upload a .tex file.",
+        )
+
+    try:
+        result = await run_in_threadpool(
+            tailor_latex_resume,
+            source,
+            job_description.strip(),
+        )
+        return LatexTailorResponse(**result)
+
+    except LatexInputError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    except AIServiceError as exc:
+        logger.error("LaTeX tailoring failed: %s", exc)
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    except LatexError as exc:
+        logger.error("LaTeX compile unavailable: %s", exc)
+        raise HTTPException(
+            status_code=502,
+            detail="PDF generation is unavailable on the server right now.",
+        ) from exc
+
+    except ValidationError as exc:
+        logger.error("LaTeX tailoring response failed validation: %s", exc)
+        raise HTTPException(
+            status_code=502,
+            detail="The AI service returned data in an unexpected format. Please try again.",
+        ) from exc
+
+
+# Resume export endpoints
+@app.post("/api/resume/tex")
+async def export_resume_tex(
+    payload: ResumeExportRequest,
+    current_user=Depends(get_current_user),
+) -> Response:
+    """Return the tailored resume as an editable LaTeX source file.
+
+    When pdflatex is available, the source uses the same one-page layout as
+    the PDF export; otherwise the default layout is returned.
+    """
+    blocks = [block.model_dump() for block in payload.blocks]
+    source = build_latex(blocks)
+    if pdflatex_available():
+        try:
+            source, _pdf = await run_in_threadpool(render_one_page, blocks)
+        except LatexError as exc:
+            logger.warning("One-page fitting failed; using default layout: %s", exc)
+    return Response(
+        content=source,
+        media_type="application/x-tex; charset=utf-8",
+        headers={
+            "Content-Disposition": 'attachment; filename="TailorCV-Tailored-Resume.tex"'
+        },
+    )
+
+
+@app.post(
+    "/api/resume/pdf",
+    responses={401: {"model": ErrorResponse}, 502: {"model": ErrorResponse}},
+)
+async def export_resume_pdf(
+    payload: ResumeExportRequest,
+    current_user=Depends(get_current_user),
+) -> Response:
+    """Compile the tailored resume to a one-page PDF."""
+    blocks = [block.model_dump() for block in payload.blocks]
+
+    try:
+        _source, pdf_bytes = await run_in_threadpool(render_one_page, blocks)
+    except LatexError as exc:
+        logger.error("PDF generation failed: %s", exc)
+        raise HTTPException(
+            status_code=502,
+            detail="Could not generate the PDF. Please download the .tex file instead.",
+        ) from exc
+
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": 'attachment; filename="TailorCV-Tailored-Resume.pdf"'
+        },
+    )
 
 
 @app.exception_handler(404)

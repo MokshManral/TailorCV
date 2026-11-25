@@ -2,7 +2,7 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "../components/Header";
 
-export default function PrivacyPolicyPage({dark, setDark}) {
+export default function PrivacyPolicyPage({ dark, setDark }) {
   const navigate = useNavigate();
 
   return (
@@ -83,10 +83,9 @@ export default function PrivacyPolicyPage({dark, setDark}) {
               </h2>
 
               <p>
-                We may collect information you provide when creating an
-                account, including your email address, profile information,
-                resume content, and job descriptions you submit to the
-                service.
+                We may collect information you provide when creating an account,
+                including your email address, profile information, resume
+                content, and job descriptions you submit to the service.
               </p>
             </section>
 
@@ -100,9 +99,9 @@ export default function PrivacyPolicyPage({dark, setDark}) {
               </h2>
 
               <p>
-                We use submitted information to provide, maintain, improve,
-                and personalize TailorCV. Resume and job description data may
-                be processed to generate resume-tailoring recommendations.
+                We use submitted information to provide, maintain, improve, and
+                personalize TailorCV. Resume and job description data may be
+                processed to generate resume-tailoring recommendations.
               </p>
             </section>
 
@@ -134,8 +133,8 @@ export default function PrivacyPolicyPage({dark, setDark}) {
 
               <p>
                 TailorCV may use cookies, local storage, or similar technologies
-                to maintain sessions, remember preferences, and improve the
-                user experience.
+                to maintain sessions, remember preferences, and improve the user
+                experience.
               </p>
             </section>
 

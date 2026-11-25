@@ -1,25 +1,19 @@
 import os
-
 from datetime import datetime, timedelta, timezone
 
-from jose import jwt, JWTError
-
 from authlib.integrations.starlette_client import OAuth
-
 from fastapi import (
     APIRouter,
-    Request,
     Depends,
     HTTPException,
+    Request,
 )
-
-from fastapi.responses import RedirectResponse, JSONResponse
-
+from fastapi.responses import JSONResponse, RedirectResponse
+from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 
 from database import get_db
 from models import UserDB
-
 
 oauth = OAuth()
 
@@ -29,8 +23,7 @@ oauth.register(
     client_id=os.getenv("GOOGLE_CLIENT_ID"),
     client_secret=os.getenv("GOOGLE_CLIENT_SECRET"),
     server_metadata_url=(
-        "https://accounts.google.com/"
-        ".well-known/openid-configuration"
+        "https://accounts.google.com/.well-known/openid-configuration"
     ),
     client_kwargs={
         "scope": "openid email profile",
@@ -51,9 +44,7 @@ COOKIE_SECURE = IS_PRODUCTION
 
 JWT_SECRET = os.getenv("JWT_SECRET")
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
-JWT_EXPIRE_MINUTES = int(
-    os.getenv("JWT_EXPIRE_MINUTES", "60")
-)
+JWT_EXPIRE_MINUTES = int(os.getenv("JWT_EXPIRE_MINUTES", "60"))
 
 
 router = APIRouter(prefix="/auth")
@@ -62,9 +53,7 @@ router = APIRouter(prefix="/auth")
 def create_access_token(user_id: int) -> str:
     """Create a JWT for an authenticated user."""
 
-    expire = datetime.now(timezone.utc) + timedelta(
-        minutes=JWT_EXPIRE_MINUTES
-    )
+    expire = datetime.now(timezone.utc) + timedelta(minutes=JWT_EXPIRE_MINUTES)
 
     payload = {
         "sub": str(user_id),
@@ -83,9 +72,7 @@ async def google_login(request: Request):
     """Start Google OAuth login."""
 
     return await oauth.google.authorize_redirect(
-        request,
-        GOOGLE_REDIRECT_URI,
-        prompt="select_account"
+        request, GOOGLE_REDIRECT_URI, prompt="select_account"
     )
 
 
@@ -108,19 +95,11 @@ async def google_callback(
     picture = user_info.get("picture")
 
     # Find existing user by Google ID
-    user_db = (
-        db.query(UserDB)
-        .filter(UserDB.google_id == google_id)
-        .first()
-    )
+    user_db = db.query(UserDB).filter(UserDB.google_id == google_id).first()
 
     # If not found, try email
     if not user_db:
-        user_db = (
-            db.query(UserDB)
-            .filter(UserDB.email == email)
-            .first()
-        )
+        user_db = db.query(UserDB).filter(UserDB.email == email).first()
 
     # Create user if they don't exist
     if not user_db:
@@ -146,9 +125,7 @@ async def google_callback(
     access_token = create_access_token(user_db.id)
 
     # Redirect to frontend TailorCV page
-    response = RedirectResponse(
-        url=f"{FRONTEND_URL}/tailor"
-    )
+    response = RedirectResponse(url=f"{FRONTEND_URL}/tailor")
 
     # Store JWT in HttpOnly cookie
     response.set_cookie(
@@ -196,24 +173,20 @@ async def get_current_user(
 
         try:
             user_id = int(user_id_raw)
-        except (TypeError, ValueError):
+        except (TypeError, ValueError) as exc:
             raise HTTPException(
                 status_code=401,
                 detail="Invalid token",
-            )
+            ) from exc
 
-    except JWTError:
+    except JWTError as exc:
         raise HTTPException(
             status_code=401,
             detail="Invalid or expired token",
-        )
+        ) from exc
 
     # Find user in database
-    user = (
-        db.query(UserDB)
-        .filter(UserDB.id == user_id)
-        .first()
-    )
+    user = db.query(UserDB).filter(UserDB.id == user_id).first()
 
     if not user:
         raise HTTPException(
@@ -248,11 +221,7 @@ async def get_me(
 async def logout():
     """Clear the authentication cookie."""
 
-    response = JSONResponse(
-        content={
-            "message": "Logged out successfully"
-        }
-    )
+    response = JSONResponse(content={"message": "Logged out successfully"})
 
     response.delete_cookie(
         key="access_token",

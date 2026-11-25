@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 
 import InputPanel from "../components/InputPanel.jsx";
@@ -6,36 +5,15 @@ import EmptyState from "../components/EmptyState.jsx";
 import Header from "../components/Header.jsx";
 import ErrorState from "../components/ErrorState.jsx";
 import ResultsPanel from "../components/ResultsPanel.jsx";
-
-const getApiBaseUrl = () => {
-  const configuredUrl =
-    import.meta.env.VITE_API_URL || import.meta.env.API_URL;
-
-  if (configuredUrl) {
-    return configuredUrl.replace(/\/$/, "");
-  }
-
-  if (
-    window.location.hostname === "localhost" ||
-    window.location.hostname === "127.0.0.1"
-  ) {
-    return "http://localhost:8000";
-  }
-
-  return window.location.origin;
-};
-
-const API_BASE_URL = getApiBaseUrl();
+import { API_BASE_URL } from "../lib/api.js";
 
 const GENERIC_ERROR =
   "Something went wrong while analyzing your resume. Please try again.";
 
-export default function TailorPage({
-  dark,
-  setDark,
-  user,
-  setUser,
-}) {
+export default function TailorPage({ dark, setDark, user, setUser }) {
+  const [resumeMode, setResumeMode] = useState("paste");
+  const [resumeText, setResumeText] = useState("");
+  const [latexSource, setLatexSource] = useState("");
   const [resumeFile, setResumeFile] = useState(null);
   const [jobDescription, setJobDescription] = useState("");
 
@@ -47,9 +25,7 @@ export default function TailorPage({
   const isLoading = status === "loading";
   const isSuccess = status === "success";
 
-  const muted = dark
-    ? "text-neutral-400"
-    : "text-neutral-500";
+  const muted = dark ? "text-neutral-400" : "text-neutral-500";
 
   const card = dark
     ? "border-neutral-800 bg-[#111]"
@@ -59,13 +35,20 @@ export default function TailorPage({
   function validate() {
     const errors = {};
 
-    if (!resumeFile) {
+    if (resumeMode === "paste" && !resumeText.trim()) {
+      errors.resume = "Please paste your resume.";
+    }
+
+    if (resumeMode === "latex" && !latexSource.trim()) {
+      errors.latex = "Please paste your LaTeX resume or load a .tex file.";
+    }
+
+    if (resumeMode === "upload" && !resumeFile) {
       errors.resume = "Please upload your resume.";
     }
 
     if (!jobDescription.trim()) {
-      errors.jobDescription =
-        "Please paste a job description.";
+      errors.jobDescription = "Please paste a job description.";
     }
 
     setFieldErrors(errors);
@@ -84,19 +67,22 @@ export default function TailorPage({
     try {
       const formData = new FormData();
 
-      formData.append("resume_file", resumeFile);
-      formData.append(
-        "job_description",
-        jobDescription.trim()
-      );
+      if (resumeMode === "latex") {
+        formData.append("latex_source", latexSource);
+      } else if (resumeMode === "paste") {
+        formData.append("resume_text", resumeText.trim());
+      } else {
+        formData.append("resume_file", resumeFile);
+      }
+      formData.append("job_description", jobDescription.trim());
 
       const response = await fetch(
-        `${API_BASE_URL}/api/tailor`,
+        `${API_BASE_URL}/api/tailor${resumeMode === "latex" ? "/latex" : ""}`,
         {
           method: "POST",
           credentials: "include",
           body: formData,
-        }
+        },
       );
 
       if (!response.ok) {
@@ -119,13 +105,10 @@ export default function TailorPage({
 
       setResult(data);
       setStatus("success");
-
     } catch (error) {
       console.error("Resume tailoring error:", error);
 
-      setErrorMessage(
-        error.message || GENERIC_ERROR
-      );
+      setErrorMessage(error.message || GENERIC_ERROR);
 
       setStatus("error");
     }
@@ -133,6 +116,8 @@ export default function TailorPage({
 
   // Reset everything
   function handleStartOver() {
+    setResumeText("");
+    setLatexSource("");
     setResumeFile(null);
     setJobDescription("");
     setResult(null);
@@ -147,38 +132,25 @@ export default function TailorPage({
   }
 
   const steps = [
-    { number: "01", label: "Upload details" },
+    { number: "01", label: "Add details" },
     { number: "02", label: "AI analysis" },
     { number: "03", label: "Your results" },
   ];
 
-  const activeStep = isSuccess
-    ? 3
-    : isLoading
-    ? 2
-    : 1;
+  const activeStep = isSuccess ? 3 : isLoading ? 2 : 1;
 
   return (
     <main
       className={`min-h-screen transition-colors duration-300 ${
-        dark
-          ? "bg-[#080808] text-white"
-          : "bg-[#fafafa] text-[#111]"
+        dark ? "bg-[#080808] text-white" : "bg-[#fafafa] text-[#111]"
       }`}
     >
       {/* NAVBAR */}
-      <Header
-        dark={dark}
-        setDark={setDark}
-        user={user}
-        setUser={setUser}
-      />
+      <Header dark={dark} setDark={setDark} user={user} setUser={setUser} />
 
       <section className="mx-auto max-w-6xl px-6 pb-24 pt-12 sm:px-8 sm:pt-16">
-
         {/* PAGE HEADING */}
         <div className="mb-12">
-
           <div
             className={`mb-5 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium ${
               dark
@@ -191,7 +163,6 @@ export default function TailorPage({
           </div>
 
           <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
-
             <div>
               <h1 className="text-3xl font-semibold tracking-[-0.045em] sm:text-5xl">
                 {isSuccess
@@ -199,10 +170,12 @@ export default function TailorPage({
                   : "Make every application count."}
               </h1>
 
-              <p className={`mt-4 max-w-xl text-sm leading-7 sm:text-base ${muted}`}>
+              <p
+                className={`mt-4 max-w-xl text-sm leading-7 sm:text-base ${muted}`}
+              >
                 {isSuccess
                   ? "Review your missing points, improvement suggestions and tailored resume."
-                  : "Upload your resume, add a job description and let AI help you present your experience for the role."}
+                  : "Paste or upload your resume, add a job description and let AI help you present your experience for the role."}
               </p>
             </div>
 
@@ -223,11 +196,22 @@ export default function TailorPage({
 
         {/* INPUT AND OUTPUT */}
         <div className="grid items-start gap-6 lg:grid-cols-2">
-
           {/* INPUT */}
           <div className="min-w-0">
-
             <InputPanel
+              resumeMode={resumeMode}
+              setResumeMode={(mode) => {
+                setResumeMode(mode);
+                setFieldErrors((errors) => ({
+                  ...errors,
+                  resume: undefined,
+                  latex: undefined,
+                }));
+              }}
+              resumeText={resumeText}
+              setResumeText={setResumeText}
+              latexSource={latexSource}
+              setLatexSource={setLatexSource}
               resumeFile={resumeFile}
               setResumeFile={setResumeFile}
               jobDescription={jobDescription}
@@ -241,19 +225,12 @@ export default function TailorPage({
 
           {/* OUTPUT */}
           <div className="min-w-0">
+            <div
+              className={`min-h-[300px] rounded-2xl border p-4 sm:p-5 ${card}`}
+            >
+              {status === "idle" && <EmptyState dark={dark} />}
 
-            <div className={`min-h-[300px] rounded-2xl border p-4 sm:p-5 ${card}`}>
-
-              {status === "idle" && (
-                <EmptyState dark={dark} />
-              )}
-
-              {isLoading && (
-                <ResultsPanel
-                  loading={true}
-                  dark={dark}
-                />
-              )}
+              {isLoading && <ResultsPanel loading={true} dark={dark} />}
 
               {status === "error" && (
                 <ErrorState
@@ -270,17 +247,19 @@ export default function TailorPage({
                   dark={dark}
                 />
               )}
-
             </div>
           </div>
         </div>
 
         {/* FOOTER */}
-        <div className={`mt-12 border-t pt-8 ${
-          dark ? "border-neutral-900" : "border-neutral-200"
-        }`}>
-          <div className={`flex flex-wrap items-center justify-center gap-x-7 gap-y-3 text-xs ${muted}`}>
-
+        <div
+          className={`mt-12 border-t pt-8 ${
+            dark ? "border-neutral-900" : "border-neutral-200"
+          }`}
+        >
+          <div
+            className={`flex flex-wrap items-center justify-center gap-x-7 gap-y-3 text-xs ${muted}`}
+          >
             <span className="flex items-center gap-2">
               <span className="text-green-500">✓</span>
               ATS-friendly suggestions
@@ -295,10 +274,8 @@ export default function TailorPage({
               <span className="text-green-500">✓</span>
               Job-specific improvements
             </span>
-
           </div>
         </div>
-
       </section>
     </main>
   );

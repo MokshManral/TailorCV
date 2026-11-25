@@ -1,33 +1,17 @@
 """Pydantic and SQLAlchemy models for the TailorCV API."""
 
 from datetime import datetime
+from typing import Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field
 from sqlalchemy import Boolean, Column, DateTime, Integer, String
 
 from database import Base
 
-
-# -------------------------
-# Pydantic user model
-# -------------------------
-
-class User(BaseModel):
-    """User data returned by the API."""
-
-    id: int | None = None
-    username: str | None = None
-    email: str
-    password_hash: str | None = None
-    google_id: str | None = None
-    profile_picture: str | None = None
-    is_active: bool = True
-    created_at: datetime | None = None
-
-
 # -------------------------
 # SQLAlchemy user model
 # -------------------------
+
 
 class UserDB(Base):
     """Database model for users."""
@@ -82,36 +66,9 @@ class UserDB(Base):
 
 
 # -------------------------
-# Tailor request
-# -------------------------
-
-class TailorRequest(BaseModel):
-    """Incoming request body for POST /api/tailor."""
-
-    resume: str = Field(
-        ...,
-        description="The candidate's raw resume text.",
-    )
-
-    job_description: str = Field(
-        ...,
-        description="The target job description text.",
-    )
-
-    @field_validator("resume", "job_description")
-    @classmethod
-    def not_blank(cls, value: str) -> str:
-        if not value or not value.strip():
-            raise ValueError(
-                "This field cannot be empty."
-            )
-
-        return value.strip()
-
-
-# -------------------------
 # Tailor response
 # -------------------------
+
 
 class TailorResponse(BaseModel):
     """Response returned by POST /api/tailor."""
@@ -149,11 +106,55 @@ class TailorResponse(BaseModel):
     )
 
 
+class LatexTailorResponse(TailorResponse):
+    """Response returned by POST /api/tailor/latex."""
+
+    tailored_latex: str = Field(
+        ...,
+        description="The full tailored LaTeX document (original preamble kept).",
+    )
+
+    pdf_base64: str = Field(
+        ...,
+        description="The compiled tailored resume PDF, base64-encoded.",
+    )
+
+    page_count: int = Field(..., description="Pages in the tailored PDF.")
+
+    original_page_count: int = Field(
+        ...,
+        description="Pages in the original resume's PDF.",
+    )
+
+
 # -------------------------
 # Error response
 # -------------------------
+
 
 class ErrorResponse(BaseModel):
     """Standard error payload returned to the frontend."""
 
     detail: str
+
+
+# -------------------------
+# Resume export
+# -------------------------
+
+
+class ResumeBlock(BaseModel):
+    """One formatted line of the tailored resume preview."""
+
+    type: Literal[
+        "name", "contact", "section", "entry", "subentry", "bullet", "text", "spacer"
+    ]
+    text: str = Field(default="", max_length=2000)
+    right: str = Field(default="", max_length=200)
+    label: str = Field(default="", max_length=200)
+
+
+class ResumeExportRequest(BaseModel):
+    """Preview blocks to render as a LaTeX source file or PDF."""
+
+    blocks: list[ResumeBlock] = Field(..., min_length=1, max_length=500)

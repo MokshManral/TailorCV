@@ -1,4 +1,3 @@
-
 const KNOWN_SECTION_HEADINGS = new Set([
   "SUMMARY",
   "PROFESSIONAL SUMMARY",
@@ -32,6 +31,12 @@ const KNOWN_SECTION_HEADINGS = new Set([
   "REFERENCES",
 ]);
 
+// "Left | Right" separator used for entry lines (e.g. "Acme Corp | 2023 – Present")
+const ENTRY_SEPARATOR = /\s+\|\s+/;
+
+// "Languages: Python, SQL" style label lines
+const LABEL_LINE = /^([A-Za-z][A-Za-z0-9 &/+.-]{0,30}):\s+(.+)$/;
+
 const BULLET_PREFIX = /^(?:[-*•▪◦‣]|\d+[.)])\s+/;
 
 const CONTACT_DETAIL =
@@ -64,7 +69,8 @@ function isSectionHeading(line) {
     /[A-Z]/.test(line) &&
     line === line.toUpperCase() &&
     !CONTACT_DETAIL.test(line) &&
-    !BULLET_PREFIX.test(line)
+    !BULLET_PREFIX.test(line) &&
+    !ENTRY_SEPARATOR.test(line)
   );
 }
 
@@ -73,10 +79,7 @@ export function formatResumeText(text) {
     return [];
   }
 
-  const lines = text
-    .replace(/\r\n?/g, "\n")
-    .split("\n")
-    .map(cleanLine);
+  const lines = text.replace(/\r\n?/g, "\n").split("\n").map(cleanLine);
 
   const blocks = [];
   let firstContentSeen = false;
@@ -85,10 +88,7 @@ export function formatResumeText(text) {
   for (const line of lines) {
     // Handle blank lines
     if (!line) {
-      if (
-        blocks.length > 0 &&
-        blocks[blocks.length - 1].type !== "spacer"
-      ) {
+      if (blocks.length > 0 && blocks[blocks.length - 1].type !== "spacer") {
         blocks.push({
           type: "spacer",
           text: "",
@@ -127,12 +127,9 @@ export function formatResumeText(text) {
       continue;
     }
 
-    // Identify additional contact information
-    if (
-      hasName &&
-      CONTACT_DETAIL.test(line) &&
-      !blocks.some((block) => block.type === "contact")
-    ) {
+    // Every line between the name and the first section heading belongs to
+    // the header (contact links, location).
+    if (hasName && !blocks.some((block) => block.type === "section")) {
       blocks.push({
         type: "contact",
         text: line,
@@ -151,6 +148,59 @@ export function formatResumeText(text) {
       continue;
     }
 
+    // Handle entry lines: "Left | Right". A line directly under an entry
+    // becomes its subentry (e.g. "Software Engineer | Bengaluru").
+    // Split at the first separator only: "Class XII | 71% | 2023" keeps
+    // "71% | 2023" together on the right.
+    const separator = line.match(ENTRY_SEPARATOR);
+    const parts = separator
+      ? [
+          line.slice(0, separator.index),
+          line.slice(separator.index + separator[0].length),
+        ]
+      : [line];
+
+    // Treat placeholder right sides ("N/A", "-") as empty.
+    if (
+      parts.length === 2 &&
+      /^(?:n\/?a|none|nil|-+|–)$/i.test(parts[1].trim())
+    ) {
+      parts[1] = "";
+    }
+
+    if (parts.length === 2 && parts[1].length <= 80) {
+      const previous = [...blocks]
+        .reverse()
+        .find((block) => block.type !== "spacer");
+
+      blocks.push({
+        type: previous?.type === "entry" ? "subentry" : "entry",
+        text: parts[0],
+        right: parts[1],
+      });
+      continue;
+    }
+
+    // A plain line directly under an entry heading (e.g. a project's tech
+    // stack) is its italic subentry.
+    const lastBlock = blocks[blocks.length - 1];
+    if (lastBlock?.type === "entry" && !LABEL_LINE.test(line)) {
+      blocks.push({ type: "subentry", text: line, right: "" });
+      continue;
+    }
+
+    // Handle label lines: "Languages: Python, SQL"
+    const labelMatch = line.match(LABEL_LINE);
+
+    if (labelMatch && !CONTACT_DETAIL.test(labelMatch[1])) {
+      blocks.push({
+        type: "text",
+        label: labelMatch[1],
+        text: labelMatch[2],
+      });
+      continue;
+    }
+
     // Handle regular text
     blocks.push({
       type: "text",
@@ -159,10 +209,7 @@ export function formatResumeText(text) {
   }
 
   // Remove unnecessary trailing spacers
-  while (
-    blocks.length > 0 &&
-    blocks[blocks.length - 1].type === "spacer"
-  ) {
+  while (blocks.length > 0 && blocks[blocks.length - 1].type === "spacer") {
     blocks.pop();
   }
 

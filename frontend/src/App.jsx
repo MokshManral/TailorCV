@@ -6,26 +6,7 @@ import LoginPage from "./pages/LoginPage.jsx";
 import TailorPage from "./pages/TailorPage.jsx";
 import TermsPage from "./pages/TermsPage.jsx";
 import PrivacyPolicyPage from "./pages/PrivacyPolicyPage.jsx";
-
-const getApiBaseUrl = () => {
-  const configuredUrl =
-    import.meta.env.VITE_API_URL || import.meta.env.API_URL;
-
-  if (configuredUrl) {
-    return configuredUrl.replace(/\/$/, "");
-  }
-
-  if (
-    window.location.hostname === "localhost" ||
-    window.location.hostname === "127.0.0.1"
-  ) {
-    return "http://localhost:8000";
-  }
-
-  return window.location.origin;
-};
-
-const API_BASE_URL = getApiBaseUrl();
+import { API_BASE_URL } from "./lib/api.js";
 
 export default function App() {
   const [dark, setDark] = useState(() => {
@@ -36,28 +17,19 @@ export default function App() {
   const [loadingUser, setLoadingUser] = useState(true);
 
   useEffect(() => {
-    localStorage.setItem(
-      "tailorcv-theme",
-      dark ? "dark" : "light"
-    );
+    localStorage.setItem("tailorcv-theme", dark ? "dark" : "light");
 
-    document.documentElement.classList.toggle(
-      "dark",
-      dark
-    );
+    document.documentElement.classList.toggle("dark", dark);
   }, [dark]);
 
   // Check authentication
   useEffect(() => {
     const checkUser = async () => {
       try {
-        const response = await fetch(
-          `${API_BASE_URL}/auth/me`,
-          {
-            method: "GET",
-            credentials: "include",
-          }
-        );
+        const response = await fetch(`${API_BASE_URL}/auth/me`, {
+          method: "GET",
+          credentials: "include",
+        });
 
         if (response.ok) {
           const data = await response.json();
@@ -66,10 +38,7 @@ export default function App() {
           setUser(null);
         }
       } catch (error) {
-        console.error(
-          "Authentication check failed:",
-          error
-        );
+        console.error("Authentication check failed:", error);
         setUser(null);
       } finally {
         setLoadingUser(false);
@@ -85,12 +54,7 @@ export default function App() {
         <Route
           path="/"
           element={
-            <Hero
-              dark={dark}
-              setDark={setDark}
-              user={user}
-              setUser={setUser}
-            />
+            <Hero dark={dark} setDark={setDark} user={user} setUser={setUser} />
           }
         />
 
@@ -128,22 +92,12 @@ export default function App() {
 
         <Route
           path="/terms"
-          element={
-            <TermsPage
-              dark={dark}
-              setDark={setDark}
-            />
-          }
+          element={<TermsPage dark={dark} setDark={setDark} />}
         />
 
         <Route
           path="/privacy"
-          element={
-            <PrivacyPolicyPage
-              dark={dark}
-              setDark={setDark}
-            />
-          }
+          element={<PrivacyPolicyPage dark={dark} setDark={setDark} />}
         />
       </Routes>
     </BrowserRouter>

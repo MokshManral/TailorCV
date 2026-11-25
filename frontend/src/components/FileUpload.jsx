@@ -1,10 +1,6 @@
 import { useRef } from "react";
 
-export default function FileUpload({
-  file,
-  setFile,
-  dark,
-}) {
+export default function FileUpload({ file, setFile, dark }) {
   const inputRef = useRef(null);
 
   function handleChange(e) {
@@ -12,10 +8,10 @@ export default function FileUpload({
 
     if (!selectedFile) return;
 
-    const allowedExtensions = /\.(pdf|doc|docx)$/i;
+    const allowedExtensions = /\.(pdf|docx)$/i;
 
     if (!allowedExtensions.test(selectedFile.name)) {
-      alert("Please upload a PDF, DOC or DOCX file.");
+      alert("Please upload a PDF or DOCX file.");
       e.target.value = "";
       return;
     }
@@ -71,18 +67,14 @@ export default function FileUpload({
           </div>
 
           <div className="flex-1">
-            <p className="text-sm font-medium">
-              Upload your resume
-            </p>
+            <p className="text-sm font-medium">Upload your resume</p>
 
             <p className="mt-1 text-xs text-neutral-500">
               PDF or DOCX · Max 10 MB
             </p>
           </div>
 
-          <span className="text-xs font-medium text-neutral-500">
-            Browse
-          </span>
+          <span className="text-xs font-medium text-neutral-500">Browse</span>
         </button>
       ) : (
         <div
@@ -114,9 +106,7 @@ export default function FileUpload({
           </div>
 
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium">
-              {file.name}
-            </p>
+            <p className="truncate text-sm font-medium">{file.name}</p>
 
             <p className="mt-1 text-xs text-neutral-500">
               {(file.size / 1024 / 1024).toFixed(2)} MB · Ready to analyze

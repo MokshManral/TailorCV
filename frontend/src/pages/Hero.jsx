@@ -22,9 +22,9 @@ export default function Hero({ dark, setDark }) {
   const steps = [
     {
       number: "01",
-      title: "Upload your resume",
+      title: "Add your resume",
       description:
-        "Upload your existing resume in PDF format. TailorCV analyzes your skills and experience.",
+        "Paste your existing resume or upload it as a PDF or DOCX. TailorCV analyzes your skills and experience.",
     },
     {
       number: "02",
@@ -148,7 +148,7 @@ export default function Hero({ dark, setDark }) {
           <p
             className={`mx-auto mt-7 max-w-2xl text-base leading-7 sm:text-lg ${muted}`}
           >
-            Stop sending the same resume everywhere. Upload your resume, add the
+            Stop sending the same resume everywhere. Paste your resume, add the
             job description, and let TailorCV optimize it for the role.
           </p>
 
@@ -254,14 +254,15 @@ export default function Hero({ dark, setDark }) {
                     dark ? "text-neutral-400" : "text-neutral-500"
                   }`}
                 >
-                  Upload your existing resume and paste the job description
-                  you're applying for. TailorCV uses both to understand what the
-                  role requires and what you already bring to the table.
+                  Paste or upload your existing resume and paste the job
+                  description you're applying for. TailorCV uses both to
+                  understand what the role requires and what you already bring
+                  to the table.
                 </p>
 
                 <div className="mt-7 space-y-4 text-sm">
                   {[
-                    "Upload your resume",
+                    "Paste or upload your resume",
                     "Paste the job description",
                     "Start AI analysis",
                   ].map((item) => (

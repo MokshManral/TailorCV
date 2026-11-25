@@ -1,4 +1,3 @@
-
 import CharCount from "./CharCount";
 
 export default function InputBox({
@@ -50,9 +49,7 @@ export default function InputBox({
         <p
           id={`${name}-error`}
           role="alert"
-          className={`text-sm ${
-            dark ? "text-red-400" : "text-red-600"
-          }`}
+          className={`text-sm ${dark ? "text-red-400" : "text-red-600"}`}
         >
           {error}
         </p>
