@@ -52,9 +52,9 @@ class Layout:
 
 
 LAYOUTS = [
-    Layout("0.45in", "0.60in", "", "1pt", "9pt", "4pt", "6pt"),
-    Layout("0.40in", "0.55in", "", "0.5pt", "7pt", "3pt", "4pt"),
-    Layout("0.35in", "0.50in", "", "0pt", "5pt", "2pt", "3pt"),
+    Layout("0.45in", "0.60in", "", "1pt", "9pt", "5pt", "5pt"),
+    Layout("0.40in", "0.55in", "", "0.5pt", "7pt", "4pt", "4pt"),
+    Layout("0.35in", "0.50in", "", "0pt", "5pt", "3pt", "3pt"),
     Layout("0.30in", "0.45in", r"\small", "0pt", "4pt", "2pt", "2pt"),
 ]
 
@@ -74,14 +74,34 @@ _PREAMBLE = r"""\documentclass[10pt,a4paper]{{article}}
 \setlength{{\parindent}}{{0pt}}
 \setlength{{\parskip}}{{0pt}}
 \setlength{{\emergencystretch}}{{2em}}
-\setlist[itemize]{{leftmargin=16pt,itemsep={item_sep},topsep=2pt,parsep=0pt,partopsep=0pt}}
+\setlist[itemize]{{leftmargin=16pt,itemsep={item_sep},topsep=1pt,parsep=0pt,partopsep=0pt}}
 
 % Section heading: bold navy uppercase title with a navy rule underneath
 % (same look as titlesec's \titleformat with \titlerule).
 \newcommand{{\resumesection}}[1]{{%
   \par\vspace{{{section_before}}}%
   {{\large\bfseries\color{{navy}}\MakeUppercase{{#1}}\par}}%
-  \vspace{{1pt}}{{\color{{navy}}\hrule height 0.4pt}}\vspace{{{section_after}}}}}
+  \vspace{{2.5pt}}{{\color{{navy}}\hrule height 0.4pt}}\vspace{{{section_after}}}}}
+
+% Separator between contact items: the line may break here, and the "|" is
+% dropped when it does, so a long header wraps cleanly.
+\newcommand{{\contactsep}}{{\discretionary{{}}{{}}{{\kern0.6em|\kern0.6em}}}}
+
+% Row with #1 on the left and #2 right-aligned on the first line.
+% The right side never wraps; the left side wraps in the remaining width.
+% A right side wider than half the line goes on its own line instead.
+\newsavebox{{\rightbox}}
+\newcommand{{\resumerow}}[2]{{%
+  \par\noindent\sbox{{\rightbox}}{{#2}}%
+  \ifdim\wd\rightbox>0.5\linewidth
+    #1\par\noindent\hfill\usebox{{\rightbox}}\par
+  \else
+    \begin{{minipage}}[t]{{\dimexpr\linewidth-\wd\rightbox-1.5em\relax}}%
+      \raggedright #1\strut
+    \end{{minipage}}\hfill\usebox{{\rightbox}}\par
+    % Keep normal line spacing after a multi-line left side.
+    \prevdepth=\dp\strutbox
+  \fi}}
 
 % ---------- DOCUMENT ----------
 \begin{{document}}
@@ -126,7 +146,9 @@ _URL = re.compile(
 )
 _SEPARATOR = re.compile(r"\s+[|•·]\s+")
 
-# Friendly link text for well-known profile sites.
+
+# Link text for well-known profile sites. The PDF shows the label; the full
+# URL stays in the \href target, so it is readable in the .tex source.
 _SITE_LABELS = {
     "github.com": "GitHub",
     "gitlab.com": "GitLab",
@@ -168,11 +190,32 @@ def escape_latex(value: str) -> str:
     return "".join(_LATEX_SPECIALS.get(char, char) for char in value).strip()
 
 
-def _link(item: str, fallback_label: str | None) -> str:
+def _short_url(url: str) -> str:
+    """Readable form of a URL: no scheme, no "www.", no trailing slash."""
+    return re.sub(r"^(?:https?://)?(?:www\.)?", "", url).rstrip("/")
+
+
+def _site_label(url: str) -> str | None:
+    """Return "GitHub", "LinkedIn", ... for well-known profile URLs."""
+    host = re.sub(r"^(?:https?://)?(?:www\.)?", "", url.lower()).split("/")[0]
+    for domain, name in _SITE_LABELS.items():
+        if host == domain or host.endswith("." + domain):
+            return name
+    return None
+
+
+_BARE_DOMAIN = re.compile(r"^(?:[\w-]+\.)+[a-z]{2,}$", re.I)
+
+
+def _link(item: str, url_label: str | None = None, bare_domain: bool = False) -> str:
     """Render one item; emails and URLs become \\href links.
 
-    Profile URLs use a site label ("GitHub"); other URLs use
-    ``fallback_label`` (e.g. "Live Demo"), or the URL itself when None.
+    ``bare_domain`` also links plain domains like "janedoe.dev" (used for the
+    header, where "Node.js"-style false matches don't occur).
+
+    The PDF shows a short label: the site name for profile URLs ("GitHub"),
+    otherwise ``url_label`` (e.g. "Live Demo") or the short address. The full
+    URL is kept in the \\href target, so it is readable in the .tex source.
     """
     clean = _normalize_unicode(item).strip()
     display = escape_latex(item)
@@ -181,18 +224,9 @@ def _link(item: str, fallback_label: str | None) -> str:
 
     if _EMAIL.match(clean):
         target, label = "mailto:" + clean, display
-    elif _URL.match(clean):
+    elif _URL.match(clean) or (bare_domain and _BARE_DOMAIN.match(clean)):
         target = clean if clean.lower().startswith("http") else "https://" + clean
-        host = re.sub(r"^(?:https?://)?(?:www\.)?", "", clean.lower()).split("/")[0]
-        site = next(
-            (
-                name
-                for domain, name in _SITE_LABELS.items()
-                if host == domain or host.endswith("." + domain)
-            ),
-            None,
-        )
-        label = site or (fallback_label or display)
+        label = _site_label(clean) or url_label or escape_latex(_short_url(clean))
     else:
         return display
 
@@ -200,9 +234,19 @@ def _link(item: str, fallback_label: str | None) -> str:
     return rf"\href{{{target.replace('%', chr(92) + '%')}}}{{{label}}}"
 
 
-def _render_items(text: str, fallback_label: str | None) -> str:
+# Header separator: a line may break here, and the "|" is dropped when it does,
+# so a long contact line wraps cleanly instead of ending in a dangling bar.
+_SEP_HEADER = "%\n\\contactsep\n"
+
+
+def _render_items(text: str, header: bool = False) -> str:
     items = [part.strip() for part in _SEPARATOR.split(text) if part.strip()]
-    return _SEP_LATEX.join(_link(item, fallback_label) for item in items)
+    if header:
+        return _SEP_HEADER.join(
+            rf"\mbox{{{_link(item, bare_domain=True)}}}" for item in items
+        )
+    # Project and entry links (e.g. a demo URL) show as "Live Demo".
+    return _SEP_LATEX.join(_link(item, "Live Demo") for item in items)
 
 
 def build_latex(blocks: list[dict], layout: Layout = LAYOUTS[0]) -> str:
@@ -266,10 +310,10 @@ def build_latex(blocks: list[dict], layout: Layout = LAYOUTS[0]) -> str:
 
         if block_type == "contact":
             open_header()
-            prefix = r"\small " if header_lines == 0 else ""
+            prefix = "\\small\n" if header_lines == 0 else ""
             if header_lines > 0:
                 lines[-1] = lines[-1] + r"\\[3pt]"
-            lines.append(prefix + _render_items(raw, None))
+            lines.append(prefix + _render_items(raw, header=True))
             header_lines += 1
             continue
 
@@ -287,17 +331,18 @@ def build_latex(blocks: list[dict], layout: Layout = LAYOUTS[0]) -> str:
             if entries_in_section > 0:
                 lines.append(rf"\vspace{{{layout.entry_gap}}}")
             entries_in_section += 1
-            right = _render_items(raw_right, "Live Demo")
-            lines.append(
-                rf"\textbf{{{text}}}" + (rf" \hfill {right}" if right else "") + r"\par"
-            )
+            right = _render_items(raw_right)
+            if right:
+                lines.append(rf"\resumerow{{\textbf{{{text}}}}}{{{right}}}")
+            else:
+                lines.append(rf"\textbf{{{text}}}\par")
             continue
 
         if block_type == "subentry":
             close_bullets()
             if raw_right.strip():
-                right = _render_items(raw_right, "Live Demo")
-                lines.append(rf"{text} \hfill {right}\par")
+                right = _render_items(raw_right)
+                lines.append(rf"\resumerow{{{text}}}{{{right}}}")
             else:
                 lines.append(rf"\textit{{{text}}}\par")
             continue

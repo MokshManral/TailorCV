@@ -208,10 +208,50 @@ export function formatResumeText(text) {
     });
   }
 
-  // Remove unnecessary trailing spacers
-  while (blocks.length > 0 && blocks[blocks.length - 1].type === "spacer") {
-    blocks.pop();
+  return removeEmptySections(blocks);
+}
+
+// Lines that only say there is nothing to show ("N/A", "No experience").
+const PLACEHOLDER =
+  /^(?:n\/?a|none|nil|not applicable|fresher|-+|–|no(?: work| professional)? experience(?: yet)?)\.?$/i;
+
+function isPlaceholder(block) {
+  return (
+    ["text", "bullet", "entry", "subentry"].includes(block.type) &&
+    PLACEHOLDER.test(block.text.trim()) &&
+    !block.right &&
+    !block.label
+  );
+}
+
+// Drop placeholder lines, then any section left with no content, so a
+// resume without e.g. work experience has no empty EXPERIENCE heading.
+function removeEmptySections(blocks) {
+  const cleaned = blocks.filter((block) => !isPlaceholder(block));
+  const result = [];
+
+  for (let i = 0; i < cleaned.length; i += 1) {
+    const block = cleaned[i];
+
+    if (block.type === "section") {
+      let hasContent = false;
+      for (let j = i + 1; j < cleaned.length; j += 1) {
+        if (cleaned[j].type === "section") break;
+        if (cleaned[j].type !== "spacer") {
+          hasContent = true;
+          break;
+        }
+      }
+      if (!hasContent) continue;
+    }
+
+    result.push(block);
   }
 
-  return blocks;
+  // Remove unnecessary trailing spacers
+  while (result.length > 0 && result[result.length - 1].type === "spacer") {
+    result.pop();
+  }
+
+  return result;
 }

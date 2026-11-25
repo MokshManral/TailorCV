@@ -98,6 +98,12 @@ Layout rules:
 - The line directly under a project heading is its tech stack, without " | ".
 - Bullets start with "- ".
 - Skills are grouped as "Category: item, item".
+- The layout above is a template, not a checklist. Only include a section
+  when the original resume has real content for it. If the candidate has no
+  work experience or internships, leave out the EXPERIENCE section entirely:
+  never add an empty section or one that says "N/A", "None", "Fresher", or
+  "No experience". The same applies to PROJECTS, ACHIEVEMENTS, and every
+  other section.
 - Include only sections and links the original resume supports; omit any
   missing details instead of inventing them. If an entry has no date, link,
   or location, write just the left side with no " | " — never write "N/A",

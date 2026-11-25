@@ -6,6 +6,9 @@ import { formatResumeText } from "./resumeFormatting.js";
 const SERIF =
   '"Latin Modern Roman", "Computer Modern Serif", "CMU Serif", "Times New Roman", Georgia, serif';
 
+const URL_LIKE =
+  /^(?:https?:\/\/|www\.|(?:[\w-]+\.)+[a-z]{2,}\/\S*$|(?:[\w-]+\.)*(?:linkedin|github|gitlab|leetcode)\.com\b)/i;
+
 const SITE_LABELS = {
   "github.com": "GitHub",
   "gitlab.com": "GitLab",
@@ -21,35 +24,60 @@ const SITE_LABELS = {
   "dribbble.com": "Dribbble",
 };
 
-const URL_LIKE =
-  /^(?:https?:\/\/|www\.|(?:[\w-]+\.)+[a-z]{2,}\/\S*$|(?:[\w-]+\.)*(?:linkedin|github|gitlab|leetcode)\.com\b)/i;
+const BARE_DOMAIN = /^(?:[\w-]+\.)+[a-z]{2,}$/i;
 
-// Show profile URLs as site names and other URLs as `fallback`,
-// matching the LaTeX output.
-function itemLabel(item, fallback) {
-  if (!URL_LIKE.test(item) || item.includes("@")) return item;
-  const host = item
-    .toLowerCase()
-    .replace(/^(?:https?:\/\/)?(?:www\.)?/, "")
-    .split("/")[0];
+// Matches _link in latex_service.py: profile URLs show the site name
+// ("GitHub"), other URLs show `urlLabel` (e.g. "Live Demo") or their short
+// address. The full URLs are kept in the downloadable .tex file.
+function itemLabel(item, { urlLabel, bareDomain = false } = {}) {
+  const isUrl = URL_LIKE.test(item) || (bareDomain && BARE_DOMAIN.test(item));
+  if (!isUrl || item.includes("@")) return item;
+
+  const short = item
+    .replace(/^(?:https?:\/\/)?(?:www\.)?/i, "")
+    .replace(/\/+$/, "");
+  const host = short.toLowerCase().split("/")[0];
   const site = Object.entries(SITE_LABELS).find(
     ([domain]) => host === domain || host.endsWith(`.${domain}`),
   );
-  return site ? site[1] : (fallback ?? item);
+  return site ? site[1] : (urlLabel ?? short);
 }
 
-function Items({ text, fallback }) {
+function Items({ text, header = false }) {
   const items = text
     .split(/\s+[|•·]\s+/)
     .map((item) => item.trim())
     .filter(Boolean);
 
+  // Each item stays on one line together with the "|" before it, so a long
+  // header wraps between items, like the PDF.
   return items.map((item, index) => (
-    <span key={index}>
-      {index > 0 && <span className="px-3">|</span>}
-      {itemLabel(item, fallback)}
+    <span key={index} className="inline-block whitespace-nowrap">
+      {index > 0 && <span className={header ? "px-[0.6em]" : "px-3"}>|</span>}
+      {header
+        ? itemLabel(item, { bareDomain: true })
+        : itemLabel(item, { urlLabel: "Live Demo" })}
     </span>
   ));
+}
+
+// Matches \resumerow in latex_service.py: the right side stays on the first
+// line, and a right side wider than about half the line moves below instead.
+function Row({ left, right, className = "", leftClassName = "" }) {
+  const stacked = right.length > 47;
+
+  return (
+    <div
+      className={`${
+        stacked ? "flex flex-col" : "flex items-baseline justify-between gap-4"
+      } ${className}`}
+    >
+      <span className={`min-w-0 break-words ${leftClassName}`}>{left}</span>
+      <span className={`text-right ${stacked ? "self-end" : "shrink-0"}`}>
+        <Items text={right} />
+      </span>
+    </div>
+  );
 }
 
 export default function TailoredResume({ resumeText, dark }) {
@@ -131,7 +159,7 @@ export default function TailoredResume({ resumeText, dark }) {
                     first ? "" : "mt-[2px]"
                   }`}
                 >
-                  <Items text={block.text} />
+                  <Items text={block.text} header />
                 </p>
               );
             }
@@ -148,34 +176,24 @@ export default function TailoredResume({ resumeText, dark }) {
             }
 
             if (block.type === "entry") {
-              return (
-                <div
+              return block.right ? (
+                <Row
                   key={index}
-                  className="mt-[6px] flex items-baseline justify-between gap-4"
-                >
-                  <span className="min-w-0 break-words font-bold">
-                    {block.text}
-                  </span>
-                  {block.right && (
-                    <span className="shrink-0 text-right">
-                      <Items text={block.right} fallback="Live Demo" />
-                    </span>
-                  )}
-                </div>
+                  left={block.text}
+                  right={block.right}
+                  className="mt-[6px]"
+                  leftClassName="font-bold"
+                />
+              ) : (
+                <p key={index} className="mt-[6px] break-words font-bold">
+                  {block.text}
+                </p>
               );
             }
 
             if (block.type === "subentry") {
               return block.right ? (
-                <div
-                  key={index}
-                  className="flex items-baseline justify-between gap-4"
-                >
-                  <span className="min-w-0 break-words">{block.text}</span>
-                  <span className="shrink-0 text-right">
-                    <Items text={block.right} fallback="Live Demo" />
-                  </span>
-                </div>
+                <Row key={index} left={block.text} right={block.right} />
               ) : (
                 <p key={index} className="break-words italic">
                   {block.text}
