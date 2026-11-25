@@ -92,6 +92,7 @@ resume-tailor/
 │   ├── auth.py            # Google OAuth, JWT cookie, /auth/* routes
 │   ├── models.py          # Pydantic schemas + SQLAlchemy UserDB
 │   ├── database.py        # Engine, session, Base, get_db
+│   ├── Dockerfile        # Python + TeX Live image for deployment
 │   ├── services/
 │   │   ├── ai_service.py     # Gemini (Groq fallback) prompt + response parsing
 │   │   ├── latex_service.py  # LaTeX resume template, safety checks, PDF compile
@@ -390,10 +391,25 @@ The app is designed to run as two separately deployed services:
 * **Frontend** — a static Vite build (e.g. Vercel). `frontend/vercel.json`
   rewrites all routes to `index.html` so client-side routing works on refresh.
   Set `VITE_API_URL` to the deployed backend URL.
-* **Backend** — an ASGI service (e.g. Render) started with
-  `uvicorn main:app --host 0.0.0.0 --port $PORT`, backed by a managed
-  PostgreSQL database. PDF export needs `pdflatex` on the server, so use an
-  image or build step that installs TeX Live (see Prerequisites).
+* **Backend** — a Docker web service (e.g. Render) built from
+  `backend/Dockerfile`, backed by a managed PostgreSQL database. The image
+  includes TeX Live, which PDF export and LaTeX tailoring need.
+
+### Backend on Render (Docker)
+
+1. Create a **Web Service** with **Language: Docker**.
+2. Set **Root Directory** to `backend` (Dockerfile path `./Dockerfile`).
+   Leave the start command empty; the Dockerfile runs uvicorn on `$PORT`.
+3. Add the backend environment variables listed above. A plain
+   `postgresql://` `DATABASE_URL` from Render works as-is.
+
+To try the image locally:
+
+```bash
+cd backend
+docker build -t tailorcv-backend .
+docker run --env-file .env -p 8000:8000 tailorcv-backend
+```
 
 For production, remember to:
 
