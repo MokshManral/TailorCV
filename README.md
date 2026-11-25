@@ -256,6 +256,7 @@ http://localhost:5173
 | Variable       | Required | Default                 | Description                     |
 | -------------- | -------- | ----------------------- | ------------------------------- |
 | `VITE_API_URL` | No       | `http://localhost:8000` | Base URL of the FastAPI backend |
+| `API_URL`      | No       | —                       | Alias for `VITE_API_URL` (exposed via `envPrefix` in `vite.config.js`) |
 
 > **Never commit `.env` files or API keys to GitHub.**
 

@@ -1,5 +1,19 @@
+# Dependencies
 node_modules/
+
+# Build output
 dist/
+dist-ssr/
+.vite/
+
+# Environment variables (keep the example)
 .env
-.env.local
-.env.production
+.env.*
+!.env.example
+
+# Vercel CLI project link
+.vercel/
+
+# Logs
+*.log
+npm-debug.log*

@@ -26,3 +26,8 @@ env/
 *.db
 *.sqlite
 *.sqlite3
+
+# Tool caches
+.ruff_cache/
+.pytest_cache/
+.mypy_cache/
