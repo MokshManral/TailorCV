@@ -3,8 +3,7 @@
 // envPrefix); otherwise localhost:8000 in development and the page's own
 // origin as a last resort.
 function getApiBaseUrl() {
-  const configuredUrl =
-    import.meta.env.VITE_API_URL || import.meta.env.API_URL;
+  const configuredUrl = import.meta.env.VITE_API_URL || import.meta.env.API_URL;
 
   if (configuredUrl) {
     return configuredUrl.replace(/\/$/, "");

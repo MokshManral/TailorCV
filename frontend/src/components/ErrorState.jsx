@@ -2,7 +2,7 @@ export default function ErrorState({ message, onRetry, dark }) {
   return (
     <div
       role="alert"
-      className={`flex min-h-[320px] flex-col items-center justify-center rounded-2xl border p-10 text-center ${
+      className={`flex min-h-[320px] animate-fade-up flex-col items-center justify-center rounded-2xl border p-10 text-center ${
         dark
           ? "border-red-500/20 bg-red-500/[0.03]"
           : "border-red-200 bg-red-50/50"
@@ -52,7 +52,7 @@ export default function ErrorState({ message, onRetry, dark }) {
       <button
         type="button"
         onClick={onRetry}
-        className={`mt-6 rounded-lg border px-5 py-2.5 text-sm font-medium transition ${
+        className={`btn-motion mt-6 rounded-lg border px-5 py-2.5 text-sm font-medium ${
           dark
             ? "border-neutral-700 text-white hover:bg-neutral-900"
             : "border-neutral-300 text-neutral-900 hover:bg-neutral-100"

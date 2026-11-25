@@ -52,7 +52,10 @@ function Items({ text, header = false }) {
   // Each item stays on one line together with the "|" before it, so a long
   // header wraps between items, like the PDF.
   return items.map((item, index) => (
-    <span key={index} className="inline-block whitespace-nowrap">
+    <span
+      key={index}
+      className={header ? "inline-block whitespace-nowrap" : undefined}
+    >
       {index > 0 && <span className={header ? "px-[0.6em]" : "px-3"}>|</span>}
       {header
         ? itemLabel(item, { bareDomain: true })
@@ -66,21 +69,32 @@ function Items({ text, header = false }) {
 function Row({ left, right, className = "", leftClassName = "" }) {
   const stacked = right.length > 47;
 
+  // flex-wrap: the left side wraps beside the right side while there is room
+  // (at least 12rem); on narrow screens the right side drops to its own line,
+  // right-aligned, instead of squeezing the left side to nothing.
   return (
     <div
       className={`${
-        stacked ? "flex flex-col" : "flex items-baseline justify-between gap-4"
+        stacked
+          ? "flex flex-col"
+          : "flex flex-wrap items-baseline justify-between gap-x-4"
       } ${className}`}
     >
-      <span className={`min-w-0 break-words ${leftClassName}`}>{left}</span>
-      <span className={`text-right ${stacked ? "self-end" : "shrink-0"}`}>
+      <span
+        className={`min-w-0 break-words ${stacked ? "" : "flex-1 basis-32"} ${leftClassName}`}
+      >
+        {left}
+      </span>
+      <span
+        className={`max-w-full text-right ${stacked ? "self-end" : "ml-auto shrink-0"}`}
+      >
         <Items text={right} />
       </span>
     </div>
   );
 }
 
-export default function TailoredResume({ resumeText, dark }) {
+export default function TailoredResume({ resumeText, dark, tall = false }) {
   const blocks = formatResumeText(resumeText);
   const [copyState, setCopyState] = useState("idle");
   let headerLine = 0;
@@ -125,7 +139,7 @@ export default function TailoredResume({ resumeText, dark }) {
       </div>
 
       <div
-        className={`max-h-[560px] overflow-y-auto rounded-xl border p-5 shadow-sm transition-colors duration-300 sm:p-8 ${
+        className={`${tall ? "max-h-[calc(100vh-330px)] min-h-[380px]" : "max-h-[560px]"} overflow-y-auto rounded-xl border p-5 shadow-sm transition-colors duration-300 sm:p-8 ${
           dark
             ? "border-neutral-700 bg-[#fdfdfc]"
             : "border-neutral-200 bg-white"

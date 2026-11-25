@@ -9,6 +9,7 @@ import json
 import logging
 import os
 import re
+from concurrent.futures import ThreadPoolExecutor
 
 logger = logging.getLogger("resume_tailor.ai_service")
 
@@ -30,11 +31,22 @@ Your job:
    (matched_keywords).
 5. List important job-description keywords missing or not supported by the
    resume (missing_keywords).
-6. Suggest realistic, actionable improvements (suggestions).
+6. Suggest 3-6 specific changes the candidate should make so their resume
+   fits THIS job description (suggestions). Each suggestion must name the
+   job requirement it addresses and the exact change: which section or
+   bullet to edit, what to add, move, or reword (e.g. "The job asks for REST
+   API design: in your TailorCV project, lead with the FastAPI endpoints you
+   built."). Only point to work the resume actually shows. Never write a
+   ready-made bullet or claim for work the resume does not mention (no
+   invented features, metrics, or "X%" placeholders). For a requirement the
+   resume does not support, either say "if you have done X, add it to Y" or
+   suggest how to genuinely gain it (a course, a small project). No generic
+   advice.
 7. Rewrite the resume (tailored_resume) for THIS job description, following
    the TAILORING STEPS below. A tailored resume that reads almost the same as
    the original is a failed answer: two different job descriptions must
    produce visibly different resumes.
+
 
 TAILORING STEPS (all required):
 
@@ -218,6 +230,70 @@ def _get_providers():
     return providers
 
 
+COMPANIES_PROMPT = """You are a career advisor. You will be given a candidate's
+RESUME only.
+
+Recommend 5 or 6 real, established companies the candidate should look into.
+Base this on the resume alone: the candidate's whole profile (skills,
+projects, experience) and level (e.g. internships or new-graduate roles for a
+student). Cover the range of roles they fit, and prefer companies that hire in
+or near the candidate's location if the resume gives one. Include a mix of
+company sizes when sensible (large companies and well-known startups).
+
+For each company give:
+- name: the company name
+- reason: one sentence linking what the company is publicly known for (its
+  products or domain) to a specific skill or project in the resume. Do not
+  state details of a company's internal tech stack.
+- roles: 1-3 role titles that fit the candidate
+
+Never claim a company has open positions or is hiring right now.
+
+Return ONLY valid JSON:
+{"recommended_companies": [{"name": "...", "reason": "...", "roles": ["..."]}]}
+"""
+
+
+def _parse_companies(raw_content: str) -> dict:
+    raw_content = (raw_content or "").strip()
+    if raw_content.startswith("```"):
+        raw_content = raw_content.strip("`").removeprefix("json").strip()
+    try:
+        data = json.loads(raw_content)
+    except json.JSONDecodeError as exc:
+        raise AIServiceError("Invalid company recommendations.") from exc
+    companies = _clean_companies(
+        data.get("recommended_companies") if isinstance(data, dict) else None
+    )
+    if not companies:
+        raise AIServiceError("No company recommendations returned.")
+    return {"recommended_companies": companies}
+
+
+def recommend_companies(resume: str) -> list[dict]:
+    """Companies to look into, based on the resume only (never the job)."""
+    try:
+        data = _generate(
+            COMPANIES_PROMPT,
+            f"RESUME:\n-----\n{resume}\n-----",
+            _parse_companies,
+        )
+        return data["recommended_companies"]
+    except AIServiceError as exc:
+        # Optional extra: the rest of the results still work without it.
+        logger.warning("Company recommendations unavailable: %s", exc)
+        return []
+
+
+def run_with_companies(resume: str, main_call):
+    """Run ``main_call()`` and the resume-only company request in parallel."""
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        companies_future = pool.submit(recommend_companies, resume)
+        data = main_call()
+        data["recommended_companies"] = companies_future.result()
+    return data
+
+
 def _build_user_prompt(
     resume: str,
     job_description: str,
@@ -304,6 +380,30 @@ def _parse_response(raw_content: str, resume_key: str = "tailored_resume") -> di
     return data
 
 
+def _clean_companies(value) -> list[dict]:
+    """Keep well-formed company recommendations; never fail the whole reply."""
+    if not isinstance(value, list):
+        return []
+    companies = []
+    for item in value:
+        if not isinstance(item, dict):
+            continue
+        name = str(item.get("name") or "").strip()
+        if not name:
+            continue
+        roles = item.get("roles") if isinstance(item.get("roles"), list) else []
+        companies.append(
+            {
+                "name": name[:80],
+                "reason": str(item.get("reason") or "").strip()[:300],
+                "roles": [
+                    str(role).strip()[:60] for role in roles if str(role).strip()
+                ][:3],
+            }
+        )
+    return companies[:6]
+
+
 def _generate(
     system_prompt: str, user_prompt: str, parse, json_mode: bool = True
 ) -> dict:
@@ -356,10 +456,13 @@ def tailor_resume(
     if not job_description or not job_description.strip():
         raise AIServiceError("Job description is empty.")
 
-    data = _generate(
-        SYSTEM_PROMPT,
-        _build_user_prompt(resume, job_description),
-        _parse_response,
+    data = run_with_companies(
+        resume,
+        lambda: _generate(
+            SYSTEM_PROMPT,
+            _build_user_prompt(resume, job_description),
+            _parse_response,
+        ),
     )
     data["tailored_resume"] = prioritize_for_job(
         data["tailored_resume"],
@@ -534,9 +637,20 @@ Your job:
    (matched_keywords).
 5. List important job-description keywords missing or not supported by the
    resume (missing_keywords).
-6. Suggest realistic, actionable improvements (suggestions).
+6. Suggest 3-6 specific changes the candidate should make so their resume
+   fits THIS job description (suggestions). Each suggestion must name the
+   job requirement it addresses and the exact change: which section or
+   bullet to edit, what to add, move, or reword (e.g. "The job asks for REST
+   API design: in your TailorCV project, lead with the FastAPI endpoints you
+   built."). Only point to work the resume actually shows. Never write a
+   ready-made bullet or claim for work the resume does not mention (no
+   invented features, metrics, or "X%" placeholders). For a requirement the
+   resume does not support, either say "if you have done X, add it to Y" or
+   suggest how to genuinely gain it (a course, a small project). No generic
+   advice.
 7. Edit the LaTeX body (tailored_latex) so it better presents the candidate's
    existing, relevant experience for this job description.
+
 
 HOW TO EDIT THE LATEX:
 

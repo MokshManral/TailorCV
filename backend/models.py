@@ -70,6 +70,14 @@ class UserDB(Base):
 # -------------------------
 
 
+class CompanyRecommendation(BaseModel):
+    """A company worth looking into, based on the candidate's resume."""
+
+    name: str
+    reason: str = ""
+    roles: list[str] = Field(default_factory=list)
+
+
 class TailorResponse(BaseModel):
     """Response returned by POST /api/tailor."""
 
@@ -98,6 +106,11 @@ class TailorResponse(BaseModel):
     suggestions: list[str] = Field(
         default_factory=list,
         description="Actionable, realistic improvement suggestions.",
+    )
+
+    recommended_companies: list[CompanyRecommendation] = Field(
+        default_factory=list,
+        description="Companies that commonly hire for the candidate's profile.",
     )
 
     tailored_resume: str = Field(

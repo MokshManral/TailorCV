@@ -1,3 +1,5 @@
+import { useCountUp } from "../lib/motion.jsx";
+
 function getBand(score) {
   if (score >= 80) {
     return {
@@ -25,6 +27,8 @@ function getBand(score) {
 export default function MatchScoreTape({ score, summary, dark }) {
   const clamped = Math.max(0, Math.min(100, Number(score) || 0));
   const band = getBand(clamped);
+  // Number counts up and the bar fills together on first render.
+  const shown = useCountUp(clamped);
   const ticks = Array.from({ length: 11 }, (_, i) => i * 10);
 
   return (
@@ -49,7 +53,7 @@ export default function MatchScoreTape({ score, summary, dark }) {
               dark ? "text-white" : "text-neutral-950"
             }`}
           >
-            {clamped}
+            <span className="tabular-nums">{shown}</span>
             <span
               className={`ml-1 text-2xl font-medium ${
                 dark ? "text-neutral-600" : "text-neutral-400"
@@ -62,7 +66,8 @@ export default function MatchScoreTape({ score, summary, dark }) {
 
         {/* Match badge */}
         <span
-          className={`rounded-full border px-3 py-1.5 text-xs font-medium ${
+          style={{ animationDelay: "900ms" }}
+          className={`animate-pop-in rounded-full border px-3 py-1.5 text-xs font-medium ${
             band.text
           } ${
             dark
@@ -85,15 +90,15 @@ export default function MatchScoreTape({ score, summary, dark }) {
           >
             {/* Fill */}
             <div
-              className={`h-full rounded-full transition-all duration-700 ease-out ${band.fill}`}
-              style={{ width: `${clamped}%` }}
+              className={`h-full rounded-full ${band.fill}`}
+              style={{ width: `${shown}%` }}
             />
           </div>
 
           {/* Marker */}
           <div
-            className="absolute top-0 flex -translate-x-1/2 flex-col items-center transition-all duration-700 ease-out"
-            style={{ left: `${clamped}%` }}
+            className="absolute top-0 flex -translate-x-1/2 flex-col items-center"
+            style={{ left: `${shown}%` }}
           >
             <span
               className={`h-2.5 w-2.5 rounded-full border-2 shadow-sm ${

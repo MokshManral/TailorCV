@@ -3,9 +3,11 @@ import { useNavigate } from "react-router-dom";
 import Logo from "../components/Logo.jsx";
 import screenshotOne from "../../assets/SC1.png";
 import screenshotTwo from "../../assets/SC2.png";
+import { useRevealOnScroll } from "../lib/motion.jsx";
 
 export default function Hero({ dark, setDark }) {
   const navigate = useNavigate();
+  useRevealOnScroll();
 
   const muted = dark ? "text-neutral-400" : "text-neutral-500";
 
@@ -114,7 +116,7 @@ export default function Hero({ dark, setDark }) {
 
           <button
             onClick={() => navigate("/login")}
-            className={`rounded-lg px-4 py-2 text-sm font-medium ${
+            className={`btn-motion rounded-lg px-4 py-2 text-sm font-medium ${
               dark ? "bg-white text-black" : "bg-black text-white"
             }`}
           >
@@ -127,7 +129,7 @@ export default function Hero({ dark, setDark }) {
       <section className="mx-auto max-w-6xl px-6 pb-28 pt-24 sm:pt-32 lg:pt-40">
         <div className="mx-auto max-w-4xl text-center">
           <div
-            className={`mb-7 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs ${
+            className={`mb-7 inline-flex animate-fade-up items-center gap-2 rounded-full border px-3 py-1.5 text-xs ${
               dark
                 ? "border-neutral-800 bg-neutral-900 text-neutral-400"
                 : "border-neutral-200 bg-white text-neutral-500"
@@ -137,7 +139,10 @@ export default function Hero({ dark, setDark }) {
             AI-powered resume tailoring
           </div>
 
-          <h1 className="text-5xl font-semibold tracking-[-0.055em] sm:text-6xl lg:text-7xl">
+          <h1
+            style={{ animationDelay: "100ms" }}
+            className="animate-fade-up text-5xl font-semibold tracking-[-0.055em] sm:text-6xl lg:text-7xl"
+          >
             Your resume.
             <br />
             <span className={dark ? "text-neutral-600" : "text-neutral-400"}>
@@ -146,16 +151,20 @@ export default function Hero({ dark, setDark }) {
           </h1>
 
           <p
-            className={`mx-auto mt-7 max-w-2xl text-base leading-7 sm:text-lg ${muted}`}
+            style={{ animationDelay: "200ms" }}
+            className={`mx-auto mt-7 max-w-2xl animate-fade-up text-base leading-7 sm:text-lg ${muted}`}
           >
             Stop sending the same resume everywhere. Paste your resume, add the
             job description, and let TailorCV optimize it for the role.
           </p>
 
-          <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
+          <div
+            style={{ animationDelay: "300ms" }}
+            className="mt-9 flex animate-fade-up flex-col items-center justify-center gap-3 sm:flex-row"
+          >
             <button
               onClick={() => navigate("/login")}
-              className={`rounded-lg px-6 py-3 text-sm font-medium ${
+              className={`btn-motion rounded-lg px-6 py-3 text-sm font-medium ${
                 dark ? "bg-white text-black" : "bg-black text-white"
               }`}
             >
@@ -164,7 +173,7 @@ export default function Hero({ dark, setDark }) {
 
             <button
               onClick={() => scrollTo("how-it-works")}
-              className={`rounded-lg border px-6 py-3 text-sm font-medium ${
+              className={`btn-motion rounded-lg border px-6 py-3 text-sm font-medium ${
                 dark
                   ? "border-neutral-800 bg-neutral-900 text-neutral-300"
                   : "border-neutral-200 bg-white text-neutral-700"
@@ -175,7 +184,8 @@ export default function Hero({ dark, setDark }) {
           </div>
 
           <div
-            className={`mt-7 flex items-center justify-center gap-5 text-xs ${
+            style={{ animationDelay: "400ms" }}
+            className={`mt-7 flex animate-fade-up items-center justify-center gap-5 text-xs ${
               dark ? "text-neutral-600" : "text-neutral-400"
             }`}
           >
@@ -199,7 +209,7 @@ export default function Hero({ dark, setDark }) {
       >
         <div className="mx-auto max-w-6xl px-6 sm:px-8">
           {/* HEADING */}
-          <div className="mb-20 max-w-3xl">
+          <div data-reveal className="mb-20 max-w-3xl">
             <span
               className={`text-xs font-semibold uppercase tracking-[0.2em] ${
                 dark ? "text-neutral-500" : "text-neutral-400"
@@ -227,7 +237,7 @@ export default function Hero({ dark, setDark }) {
           </div>
 
           {/* STEP 01 - INPUT */}
-          <div className="mb-24">
+          <div data-reveal className="mb-24">
             <div className="mb-7 flex items-center gap-4">
               <span
                 className={`text-xs font-semibold tracking-widest ${
@@ -243,7 +253,11 @@ export default function Hero({ dark, setDark }) {
               />
             </div>
 
-            <div className="grid items-center gap-10 lg:grid-cols-2">
+            <div
+              data-reveal
+              data-reveal-delay="120"
+              className="grid items-center gap-10 lg:grid-cols-2"
+            >
               <div>
                 <h3 className="text-3xl font-semibold tracking-tight sm:text-4xl">
                   Start with your resume.
@@ -294,7 +308,7 @@ export default function Hero({ dark, setDark }) {
           </div>
 
           {/* STEP 02 - ANALYSIS */}
-          <div className="mb-24">
+          <div data-reveal className="mb-24">
             <div className="mb-7 flex items-center gap-4">
               <span
                 className={`text-xs font-semibold tracking-widest ${
@@ -359,7 +373,7 @@ export default function Hero({ dark, setDark }) {
           </div>
 
           {/* STEP 03 - OUTPUT */}
-          <div>
+          <div data-reveal>
             <div className="mb-7 flex items-center gap-4">
               <span
                 className={`text-xs font-semibold tracking-widest ${
@@ -375,7 +389,11 @@ export default function Hero({ dark, setDark }) {
               />
             </div>
 
-            <div className="grid items-center gap-10 lg:grid-cols-2">
+            <div
+              data-reveal
+              data-reveal-delay="120"
+              className="grid items-center gap-10 lg:grid-cols-2"
+            >
               {/* YOUR OUTPUT SCREENSHOT */}
               <div
                 className={`order-2 overflow-hidden rounded-2xl border p-2 lg:order-1 ${
@@ -435,7 +453,7 @@ export default function Hero({ dark, setDark }) {
         }`}
       >
         <div className="mx-auto max-w-6xl">
-          <div className="mx-auto mb-16 max-w-2xl text-center">
+          <div data-reveal className="mx-auto mb-16 max-w-2xl text-center">
             <span
               className={`text-xs font-semibold uppercase tracking-[0.2em] ${muted}`}
             >
@@ -453,10 +471,12 @@ export default function Hero({ dark, setDark }) {
           </div>
 
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {features.map((feature) => (
+            {features.map((feature, index) => (
               <div
                 key={feature.title}
-                className={`rounded-2xl border p-7 transition hover:-translate-y-1 ${card}`}
+                data-reveal
+                data-reveal-delay={(index % 3) * 100}
+                className={`rounded-2xl border p-7 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg ${card}`}
               >
                 <div
                   className={`flex h-11 w-11 items-center justify-center rounded-xl text-xl ${
@@ -485,7 +505,7 @@ export default function Hero({ dark, setDark }) {
           dark ? "border-neutral-900" : "border-neutral-200"
         }`}
       >
-        <div className="mx-auto max-w-2xl">
+        <div data-reveal className="mx-auto max-w-2xl">
           <h2 className="text-3xl font-semibold sm:text-4xl">
             Ready for your next opportunity?
           </h2>
@@ -497,7 +517,7 @@ export default function Hero({ dark, setDark }) {
 
           <button
             onClick={() => navigate("/login")}
-            className={`mt-8 rounded-lg px-7 py-3 text-sm font-medium transition ${
+            className={`btn-motion mt-8 rounded-lg px-7 py-3 text-sm font-medium ${
               dark
                 ? "bg-white text-black hover:bg-neutral-200"
                 : "bg-black text-white hover:bg-neutral-800"

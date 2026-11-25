@@ -21,6 +21,9 @@ export default function TailorPage({ dark, setDark, user, setUser }) {
   const [result, setResult] = useState(null);
   const [errorMessage, setErrorMessage] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
+  // After results arrive the form is hidden for a full-width results view;
+  // "Edit inputs" brings it back (with the results beside it).
+  const [showInputs, setShowInputs] = useState(false);
 
   const isLoading = status === "loading";
   const isSuccess = status === "success";
@@ -105,6 +108,8 @@ export default function TailorPage({ dark, setDark, user, setUser }) {
 
       setResult(data);
       setStatus("success");
+      setShowInputs(false);
+      window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (error) {
       console.error("Resume tailoring error:", error);
 
@@ -123,6 +128,7 @@ export default function TailorPage({ dark, setDark, user, setUser }) {
     setResult(null);
     setErrorMessage("");
     setFieldErrors({});
+    setShowInputs(false);
     setStatus("idle");
   }
 
@@ -150,7 +156,7 @@ export default function TailorPage({ dark, setDark, user, setUser }) {
 
       <section className="mx-auto max-w-6xl px-6 pb-24 pt-12 sm:px-8 sm:pt-16">
         {/* PAGE HEADING */}
-        <div className="mb-12">
+        <div className="mb-12 animate-fade-up">
           <div
             className={`mb-5 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium ${
               dark
@@ -174,82 +180,113 @@ export default function TailorPage({ dark, setDark, user, setUser }) {
                 className={`mt-4 max-w-xl text-sm leading-7 sm:text-base ${muted}`}
               >
                 {isSuccess
-                  ? "Review your missing points, improvement suggestions and tailored resume."
+                  ? "Download your tailored resume, then review your score, keyword gaps and suggestions."
                   : "Paste or upload your resume, add a job description and let AI help you present your experience for the role."}
               </p>
             </div>
 
             {isSuccess && (
-              <button
-                onClick={handleStartOver}
-                className={`w-fit rounded-lg border px-4 py-2.5 text-sm font-medium transition ${
-                  dark
-                    ? "border-neutral-800 hover:bg-neutral-900"
-                    : "border-neutral-200 hover:bg-neutral-100"
-                }`}
-              >
-                + New analysis
-              </button>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowInputs((value) => !value)}
+                  aria-expanded={showInputs}
+                  className={`btn-motion w-fit rounded-lg border px-4 py-2.5 text-sm font-medium ${
+                    dark
+                      ? "border-neutral-800 hover:bg-neutral-900"
+                      : "border-neutral-200 hover:bg-neutral-100"
+                  }`}
+                >
+                  {showInputs ? "Hide inputs" : "Edit inputs"}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleStartOver}
+                  className={`btn-motion w-fit rounded-lg px-4 py-2.5 text-sm font-medium ${
+                    dark
+                      ? "bg-white text-black hover:bg-neutral-200"
+                      : "bg-neutral-900 text-white hover:bg-neutral-700"
+                  }`}
+                >
+                  + New analysis
+                </button>
+              </div>
             )}
           </div>
         </div>
 
-        {/* INPUT AND OUTPUT */}
-        <div className="grid items-start gap-6 lg:grid-cols-2">
-          {/* INPUT */}
-          <div className="min-w-0">
-            <InputPanel
-              resumeMode={resumeMode}
-              setResumeMode={(mode) => {
-                setResumeMode(mode);
-                setFieldErrors((errors) => ({
-                  ...errors,
-                  resume: undefined,
-                  latex: undefined,
-                }));
-              }}
-              resumeText={resumeText}
-              setResumeText={setResumeText}
-              latexSource={latexSource}
-              setLatexSource={setLatexSource}
-              resumeFile={resumeFile}
-              setResumeFile={setResumeFile}
-              jobDescription={jobDescription}
-              setJobDescription={setJobDescription}
-              onSubmit={handleSubmit}
-              isLoading={isLoading}
-              fieldErrors={fieldErrors}
-              dark={dark}
-            />
-          </div>
-
-          {/* OUTPUT */}
-          <div className="min-w-0">
+        {isSuccess && result && !showInputs ? (
+          /* RESULTS: full width */
+          <ResultsPanel
+            result={result}
+            onStartOver={handleStartOver}
+            dark={dark}
+            split
+          />
+        ) : (
+          /* INPUT AND OUTPUT */
+          <div className="grid items-start gap-6 lg:grid-cols-2">
+            {/* INPUT (stays in view while results scroll beside it) */}
             <div
-              className={`min-h-[300px] rounded-2xl border p-4 sm:p-5 ${card}`}
+              style={{ animationDelay: "120ms" }}
+              className="min-w-0 animate-fade-up lg:sticky lg:top-6"
             >
-              {status === "idle" && <EmptyState dark={dark} />}
+              <InputPanel
+                resumeMode={resumeMode}
+                setResumeMode={(mode) => {
+                  setResumeMode(mode);
+                  setFieldErrors((errors) => ({
+                    ...errors,
+                    resume: undefined,
+                    latex: undefined,
+                  }));
+                }}
+                resumeText={resumeText}
+                setResumeText={setResumeText}
+                latexSource={latexSource}
+                setLatexSource={setLatexSource}
+                resumeFile={resumeFile}
+                setResumeFile={setResumeFile}
+                jobDescription={jobDescription}
+                setJobDescription={setJobDescription}
+                onSubmit={handleSubmit}
+                isLoading={isLoading}
+                fieldErrors={fieldErrors}
+                dark={dark}
+              />
+            </div>
 
-              {isLoading && <ResultsPanel loading={true} dark={dark} />}
+            {/* OUTPUT */}
+            <div
+              style={{ animationDelay: "220ms" }}
+              className="min-w-0 animate-fade-up"
+            >
+              <div
+                className={`min-h-[300px] rounded-2xl border p-4 sm:p-5 ${card}`}
+              >
+                {status === "idle" && <EmptyState dark={dark} />}
 
-              {status === "error" && (
-                <ErrorState
-                  message={errorMessage}
-                  onRetry={handleRetry}
-                  dark={dark}
-                />
-              )}
+                {isLoading && <ResultsPanel loading={true} dark={dark} />}
 
-              {isSuccess && result && (
-                <ResultsPanel
-                  result={result}
-                  onStartOver={handleStartOver}
-                  dark={dark}
-                />
-              )}
+                {status === "error" && (
+                  <ErrorState
+                    message={errorMessage}
+                    onRetry={handleRetry}
+                    dark={dark}
+                  />
+                )}
+
+                {isSuccess && result && (
+                  <ResultsPanel
+                    result={result}
+                    onStartOver={handleStartOver}
+                    dark={dark}
+                  />
+                )}
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* FOOTER */}
         <div

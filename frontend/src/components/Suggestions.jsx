@@ -1,3 +1,5 @@
+import { stagger } from "../lib/motion.jsx";
+
 export default function Suggestions({ suggestions = [], dark }) {
   if (suggestions.length === 0) return null;
 
@@ -13,15 +15,21 @@ export default function Suggestions({ suggestions = [], dark }) {
           dark ? "text-white" : "text-neutral-950"
         }`}
       >
-        Suggestions
+        Changes for this job
       </h3>
+      <p
+        className={`mt-1 text-xs ${dark ? "text-neutral-500" : "text-neutral-500"}`}
+      >
+        Specific edits to match this job description.
+      </p>
 
       {/* Suggestions */}
       <ol className="mt-5 flex flex-col gap-4">
         {suggestions.map((suggestion, index) => (
           <li
             key={index}
-            className={`flex gap-3 text-sm leading-6 ${
+            style={stagger(index, 70, 150)}
+            className={`flex animate-fade-up gap-3 text-sm leading-6 ${
               dark ? "text-neutral-400" : "text-neutral-600"
             }`}
           >

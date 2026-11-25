@@ -1,3 +1,5 @@
+import { stagger } from "../lib/motion.jsx";
+
 const VARIANT_STYLES = {
   matched: {
     light: "border-green-200 bg-green-50 text-green-700",
@@ -45,10 +47,11 @@ export default function KeywordBadges({
       ) : (
         /* Keywords */
         <ul className="mt-4 flex flex-wrap gap-2">
-          {keywords.map((keyword) => (
+          {keywords.map((keyword, index) => (
             <li
               key={keyword}
-              className={`rounded-full border px-3 py-1.5 font-mono text-xs transition-colors ${
+              style={stagger(index, 45, 150)}
+              className={`animate-pop-in rounded-full border px-3 py-1.5 font-mono text-xs transition-colors ${
                 dark ? styles.dark : styles.light
               }`}
             >

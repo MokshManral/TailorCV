@@ -9,7 +9,11 @@ import base64
 import logging
 import re
 
-from services.ai_service import AIServiceError, tailor_latex_body
+from services.ai_service import (
+    AIServiceError,
+    run_with_companies,
+    tailor_latex_body,
+)
 from services.latex_service import (
     MAX_LATEX_SOURCE_CHARS,
     LatexError,
@@ -78,7 +82,8 @@ def tailor_latex_resume(source: str, job_description: str) -> dict:
             "we don't have installed):\n" + latex_error_summary(exc)
         ) from exc
 
-    result = tailor_latex_body(body, job_description)
+    result = run_with_companies(body, lambda: tailor_latex_body(body, job_description))
+    companies = result.get("recommended_companies", [])
 
     for attempt in range(1, MAX_ATTEMPTS + 1):
         new_body = _extract_body(result["tailored_latex"]).strip("\n")
@@ -109,6 +114,7 @@ def tailor_latex_resume(source: str, job_description: str) -> dict:
             "matched_keywords": result["matched_keywords"],
             "missing_keywords": result["missing_keywords"],
             "suggestions": result["suggestions"],
+            "recommended_companies": companies,
             "tailored_resume": document,
             "tailored_latex": document,
             "pdf_base64": base64.b64encode(pdf).decode("ascii"),

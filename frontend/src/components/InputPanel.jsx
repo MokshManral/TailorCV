@@ -182,7 +182,7 @@ export default function InputPanel({
         <button
           type="submit"
           disabled={isLoading}
-          className={`group flex w-full items-center justify-center gap-2 rounded-lg px-6 py-3 text-sm font-medium transition ${
+          className={`btn-motion group flex w-full items-center justify-center gap-2 rounded-lg px-6 py-3 text-sm font-medium ${
             dark
               ? "bg-white text-black hover:bg-neutral-200 disabled:bg-neutral-800 disabled:text-neutral-500"
               : "bg-black text-white hover:bg-neutral-800 disabled:bg-neutral-200 disabled:text-neutral-400"

@@ -1,7 +1,7 @@
 export default function EmptyState({ dark }) {
   return (
     <div
-      className={`flex min-h-[320px] flex-col items-center justify-center rounded-2xl border p-10 text-center transition-colors duration-300 ${
+      className={`flex min-h-[320px] animate-fade-in flex-col items-center justify-center rounded-2xl border p-10 text-center transition-colors duration-300 ${
         dark
           ? "border-neutral-800 border-dashed bg-[#0e0e0e]"
           : "border-neutral-200 border-dashed bg-white"

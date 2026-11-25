@@ -21,7 +21,7 @@ export default function LoginPage({ onBack, onLogin, dark, setDark }) {
 
       {/* Main */}
       <section className="flex min-h-[calc(100vh-80px)] items-center justify-center px-6 py-12">
-        <div className="w-full max-w-[420px]">
+        <div className="w-full max-w-[420px] animate-fade-up">
           {/* Back */}
           <button
             onClick={() => navigate("/")}
@@ -78,7 +78,7 @@ export default function LoginPage({ onBack, onLogin, dark, setDark }) {
             {/* Google */}
             <button
               onClick={handleGoogleLogin}
-              className={`flex w-full items-center justify-center gap-3 rounded-lg border px-4 py-3 text-sm font-medium transition ${
+              className={`btn-motion flex w-full items-center justify-center gap-3 rounded-lg border px-4 py-3 text-sm font-medium ${
                 dark
                   ? "border-neutral-800 bg-neutral-900 text-white hover:bg-neutral-800"
                   : "border-neutral-200 bg-white text-neutral-900 hover:bg-neutral-50"

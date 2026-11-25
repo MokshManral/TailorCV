@@ -118,7 +118,7 @@ export default function LatexResult({ result, dark }) {
           <button
             type="button"
             onClick={() => saveBlob(pdfBlob, "TailorCV-Tailored-Resume.pdf")}
-            className={`flex w-full items-center justify-center gap-2 rounded-lg px-5 py-3 text-sm font-semibold transition ${
+            className={`btn-motion flex w-full items-center justify-center gap-2 rounded-lg px-5 py-3 text-sm font-semibold ${
               dark
                 ? "bg-white text-black hover:bg-neutral-200"
                 : "bg-neutral-900 text-white hover:bg-neutral-700"
@@ -137,7 +137,7 @@ export default function LatexResult({ result, dark }) {
                 "TailorCV-Tailored-Resume.tex",
               )
             }
-            className={`flex w-full items-center justify-center gap-2 rounded-lg border px-5 py-3 text-sm font-semibold transition ${
+            className={`btn-motion flex w-full items-center justify-center gap-2 rounded-lg border px-5 py-3 text-sm font-semibold ${
               dark
                 ? "border-neutral-700 text-white hover:bg-neutral-900"
                 : "border-neutral-300 text-neutral-800 hover:bg-neutral-100"

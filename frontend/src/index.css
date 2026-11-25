@@ -94,6 +94,18 @@ html {
   }
 }
 
+/* Scroll reveal (see useRevealOnScroll): hidden until it scrolls into view. */
+[data-reveal]:not(.animate-fade-up) {
+  opacity: 0;
+}
+
+/* Buttons: slight lift on hover, press-down on click. */
+@layer components {
+  .btn-motion {
+    @apply transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.98] active:shadow-none disabled:translate-y-0 disabled:shadow-none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
