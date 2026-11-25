@@ -31,8 +31,30 @@ Your job:
 5. List important job-description keywords missing or not supported by the
    resume (missing_keywords).
 6. Suggest realistic, actionable improvements (suggestions).
-7. Rewrite the resume (tailored_resume) to better emphasize the candidate's
-   relevant existing experience for this job description.
+7. Rewrite the resume (tailored_resume) for THIS job description, following
+   the TAILORING STEPS below. A tailored resume that reads almost the same as
+   the original is a failed answer: two different job descriptions must
+   produce visibly different resumes.
+
+TAILORING STEPS (all required):
+
+a. Summary: write it for this role. Lead with the candidate's skills and work
+   that match the job's main requirements, using the job description's
+   wording where it is true. Describe the candidate as they really are
+   (e.g. "Computer Science undergraduate with backend experience in ...");
+   never give them a job title they have not held, such as "Backend
+   Engineer" for a student.
+b. Skills: within each category, put the skills the job description asks for
+   first; put the most relevant category first. Keep only real skills.
+c. Projects and experience: order entries by relevance to the job
+   description, most relevant first (dates still go on the right).
+d. Bullets: rewrite each bullet to foreground the parts that matter for this
+   job, using the job description's terminology when it describes the same
+   thing (e.g. "API endpoints" -> "REST APIs" if the job says REST APIs).
+   Start with a strong action verb. Within an entry, put the most relevant
+   bullet first, and drop the least relevant bullets if space is needed.
+e. Keep every fact intact: same projects, employers, titles, dates, scores,
+   numbers, and links. Change emphasis, order, and wording, not facts.
 
 STRICT RULES:
 
@@ -45,8 +67,8 @@ STRICT RULES:
 - Do not claim the candidate has a skill that is not supported by the resume.
 - Preserve important factual information from the original resume including
   employers, titles, dates, degrees, projects, etc.
-- You may reorder, re-emphasize, and rephrase information for clarity and ATS
-  readability.
+- Reordering, re-emphasizing, and rephrasing are required (see TAILORING
+  STEPS); inventing is not.
 - Keep the resume truthful to the source material.
 - Do not attach a skill or tool to an experience or project unless the
   original resume says it was used there (e.g. a skill listed only under
@@ -334,11 +356,166 @@ def tailor_resume(
     if not job_description or not job_description.strip():
         raise AIServiceError("Job description is empty.")
 
-    return _generate(
+    data = _generate(
         SYSTEM_PROMPT,
         _build_user_prompt(resume, job_description),
         _parse_response,
     )
+    data["tailored_resume"] = prioritize_for_job(
+        data["tailored_resume"],
+        job_description,
+        data.get("matched_keywords") or [],
+    )
+    return data
+
+
+# ---------------------------------------------------------------------------
+# Relevance ordering
+#
+# Models (especially small ones) tend to keep the original order of skills and
+# projects. These helpers reorder the tailored resume text by relevance to the
+# job description. They only move existing lines, so they cannot add content.
+# ---------------------------------------------------------------------------
+
+_REORDER_ENTRY_SECTIONS = ("PROJECT",)  # experience stays in date order
+_SKILL_SECTIONS = ("SKILL",)
+_BULLET = re.compile(r"^\s*(?:[-*•▪◦‣]|\d+[.)])\s+")
+_LABEL_LINE = re.compile(r"^([A-Za-z][A-Za-z0-9 &/+.-]{0,30}):\s+(.+)$")
+
+
+def _is_heading(line: str) -> bool:
+    text = line.strip().rstrip(":")
+    return (
+        3 <= len(text) <= 45
+        and text == text.upper()
+        and any(c.isalpha() for c in text)
+        and " | " not in text
+        and not _BULLET.match(text)
+    )
+
+
+_WORD = re.compile(r"[a-z][a-z0-9+#]*(?:\.[a-z0-9]+)*")
+_STOPWORDS = {
+    "and",
+    "the",
+    "with",
+    "for",
+    "using",
+    "from",
+    "into",
+    "our",
+    "you",
+    "your",
+    "are",
+    "will",
+    "work",
+    "build",
+    "built",
+    "strong",
+    "experience",
+}
+
+
+def _contains_term(text: str, term: str) -> bool:
+    """Whole-word, case-insensitive match ("SQL" doesn't match "SQLAlchemy")."""
+    pattern = r"(?<![a-z0-9])" + re.escape(term.lower()) + r"(?![a-z0-9])"
+    return re.search(pattern, text) is not None
+
+
+def _relevance(text: str, keywords: list[str], job_words: set[str]) -> int:
+    """Score ``text``: matched keywords count 2, other shared words count 1."""
+    lowered = text.lower()
+    score = sum(
+        2 for keyword in keywords if keyword and _contains_term(lowered, keyword)
+    )
+    words = set(_WORD.findall(lowered)) - _STOPWORDS
+    score += len(words & job_words)
+    return score
+
+
+def _sort_by_relevance(items: list, key, keywords, job_text) -> list:
+    """Stable sort, most relevant first (ties keep their original order)."""
+    return sorted(items, key=lambda item: -_relevance(key(item), keywords, job_text))
+
+
+def _reorder_entries(lines: list[str], keywords, job_text) -> list[str]:
+    """Group a section into entries (heading lines + bullets) and reorder."""
+    entries: list[list[str]] = []
+    for line in lines:
+        is_bullet = bool(_BULLET.match(line))
+        if not line.strip():
+            continue
+        if not is_bullet and (not entries or _BULLET.match(entries[-1][-1])):
+            entries.append([line])
+        elif entries:
+            entries[-1].append(line)
+        else:
+            entries.append([line])
+
+    result = []
+    for entry in _sort_by_relevance(entries, lambda e: " ".join(e), keywords, job_text):
+        head = [line for line in entry if not _BULLET.match(line)]
+        bullets = [line for line in entry if _BULLET.match(line)]
+        result.extend(head)
+        result.extend(_sort_by_relevance(bullets, str, keywords, job_text))
+    return result
+
+
+def _reorder_skills(lines: list[str], keywords, job_text) -> list[str]:
+    """Reorder "Category: a, b, c" lines and the items within each line."""
+    reordered = []
+    for line in lines:
+        match = _LABEL_LINE.match(line.strip())
+        if not match:
+            reordered.append(line)
+            continue
+        items = [item.strip() for item in match.group(2).split(",") if item.strip()]
+        items = _sort_by_relevance(items, str, keywords, job_text)
+        reordered.append(f"{match.group(1)}: {', '.join(items)}")
+    labelled = [line for line in reordered if _LABEL_LINE.match(line.strip())]
+    others = [line for line in reordered if not _LABEL_LINE.match(line.strip())]
+    return _sort_by_relevance(labelled, str, keywords, job_text) + others
+
+
+def prioritize_for_job(
+    resume_text: str, job_description: str, keywords: list[str]
+) -> str:
+    """Reorder projects, bullets, and skills by relevance to the job."""
+    job_text = set(_WORD.findall(job_description.lower())) - _STOPWORDS
+    lines = resume_text.splitlines()
+    output: list[str] = []
+    index = 0
+
+    while index < len(lines):
+        line = lines[index]
+        output.append(line)
+        index += 1
+        if not _is_heading(line):
+            continue
+
+        # Collect this section's lines up to the next heading.
+        start = index
+        while index < len(lines) and not _is_heading(lines[index]):
+            index += 1
+        section = lines[start:index]
+        trailing_blank = bool(section) and not section[-1].strip()
+        heading = line.strip().upper()
+
+        if any(name in heading for name in _REORDER_ENTRY_SECTIONS):
+            section = _reorder_entries(section, keywords, job_text)
+        elif any(name in heading for name in _SKILL_SECTIONS):
+            section = _reorder_skills(
+                [entry for entry in section if entry.strip()], keywords, job_text
+            )
+        else:
+            output.extend(section)
+            continue
+
+        output.extend(section)
+        if trailing_blank:
+            output.append("")
+
+    return "\n".join(output)
 
 
 LATEX_SYSTEM_PROMPT = """You are an expert technical recruiter and resume writer
